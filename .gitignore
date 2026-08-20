@@ -44,3 +44,6 @@ data/*.db*
 
 # keep the local database directory, not its contents
 !data/.gitkeep
+
+# production secrets, never committed
+PRODUCTION-CREDENTIALS.txt
