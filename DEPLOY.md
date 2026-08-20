@@ -156,3 +156,220 @@ turso db shell venice-ganesh-production .dump > backup-$(date +%F).sql
 ```
 
 Worth running the evening before each draw.
+
+---
+
+# Moving the database to Mumbai
+
+The app runs in `bom1` (Mumbai) — that is what `vercel.json` pins. The database
+still answers from `aws-ap-northeast-1` (Tokyo), which is **~130ms per query**
+from Mumbai against ~10ms for a database in the same city. The home page makes
+about six trips, so roughly 700ms of every page load is the Bay of Bengal.
+
+A Turso group's primary location is **fixed when the group is created**. There is
+no command that moves it. So this is a dump and restore, and it needs a window
+where nobody is registering.
+
+Read the whole thing before starting. Do it at a quiet hour.
+
+## Do not use replicas for this
+
+Adding a Mumbai replica location looks like the easy answer — it is one command
+and no downtime — but it is wrong for this app. Replicas serve **reads** locally
+while writes still go to the Tokyo primary, and read-after-write is only
+guaranteed on a continuous connection. Every request here opens a fresh libSQL
+client, so a villa could register, land back on the home page, read a replica
+that has not caught up, and be told it is not registered. Worse, it could set a
+PIN and be told the PIN is wrong a second later.
+
+## Step 0 — which path you are on
+
+The starter plan allows one group. `turso group list` already shows `default`,
+so try to make a second one and see whether the quota lets you:
+
+```bash
+turso group locations list                  # confirm Mumbai is aws-ap-south-1
+turso group create venice-bom --location aws-ap-south-1
+```
+
+**If that succeeds — Path A.** The old database stays live and untouched the
+whole time, and rollback is instant. Use it.
+
+**If it fails on quota — Path B.** The only way to get a Mumbai primary is to
+destroy the `default` group and rebuild it there, which destroys the preview
+database too. Everything rests on the dump, so Path B verifies the dump before
+destroying anything.
+
+---
+
+## Path A — new group alongside the old
+
+### 1. Rehearse on preview
+
+Preview is expendable, which makes it the right place to find out what breaks.
+
+```bash
+turso db shell venice-ganesh-preview .dump > preview-dump.sql
+turso db create venice-ganesh-preview-bom --group venice-bom
+turso db shell venice-ganesh-preview-bom < preview-dump.sql
+```
+
+Check the counts match (see **Verifying a restore** below). Point the Vercel
+*preview* environment at it, redeploy preview, and click through it. Only go on
+once that works.
+
+### 2. Take production down for a few minutes
+
+Nothing enforces this — you are just picking a time when nobody is mid-form.
+Announce it in the committee group, not the community group.
+
+```bash
+turso db shell venice-ganesh-production .dump > prod-dump-$(date +%F-%H%M).sql
+```
+
+Note the time you took the dump. Anything registered after it is at risk.
+
+### 3. Restore into Mumbai
+
+```bash
+turso db create venice-ganesh-prod-bom --group venice-bom
+turso db shell venice-ganesh-prod-bom < prod-dump-$(date +%F-%H%M).sql
+turso db show venice-ganesh-prod-bom --url
+turso db tokens create venice-ganesh-prod-bom
+```
+
+### 4. Verify before cutting over
+
+See **Verifying a restore**. Do not skip it.
+
+### 5. Cut over
+
+```bash
+vercel env rm TURSO_DATABASE_URL production
+vercel env rm TURSO_AUTH_TOKEN production
+vercel env add TURSO_DATABASE_URL production     # the new libsql://…aws-ap-south-1… URL
+vercel env add TURSO_AUTH_TOKEN production       # the token from step 3
+vercel deploy --prod
+```
+
+**Leave `SESSION_SECRET` alone.** Changing it invalidates every cookie and signs
+all 247 villas out. The admin password lives in the database and comes across
+with the dump.
+
+### 6. Rollback, if needed
+
+Put the old URL and token back and redeploy. The Tokyo database has been sitting
+there untouched the whole time.
+
+---
+
+## Path B — rebuild the group in Mumbai
+
+Destructive. The dump is the only copy, so it gets verified first.
+
+### 1. Dump both databases
+
+```bash
+turso db shell venice-ganesh-production .dump > prod-dump-$(date +%F-%H%M).sql
+turso db shell venice-ganesh-preview .dump    > preview-dump.sql
+wc -l prod-dump-*.sql        # sanity: not empty, not truncated
+```
+
+### 2. Prove the dump restores, before destroying anything
+
+Load it into a local SQLite file and count what came back:
+
+```bash
+sqlite3 /tmp/verify.db < prod-dump-$(date +%F-%H%M).sql
+for t in admins audit_log draw_results draws entries entry_members events items \
+         login_attempts pattu_vastralu payments previous_winners settings slots \
+         villa_accounts villas; do
+  printf "%-18s %s\n" "$t" "$(sqlite3 /tmp/verify.db "select count(*) from $t")"
+done
+```
+
+Compare against the live database (same loop, `turso db shell
+venice-ganesh-production "select count(*) from $t"`). **If a single table
+disagrees, stop.** You have lost nothing yet.
+
+### 3. Destroy and rebuild
+
+```bash
+turso db destroy venice-ganesh-production
+turso db destroy venice-ganesh-preview
+turso group destroy default
+
+turso group create default --location aws-ap-south-1
+turso db create venice-ganesh-production --group default
+turso db create venice-ganesh-preview    --group default
+
+turso db shell venice-ganesh-production < prod-dump-$(date +%F-%H%M).sql
+turso db shell venice-ganesh-preview    < preview-dump.sql
+```
+
+### 4. New tokens, then cut over
+
+The URLs may be unchanged but **the auth tokens will not be** — issue new ones
+and update both Vercel environments, then `vercel deploy --prod`. Again, leave
+`SESSION_SECRET` alone.
+
+### 5. Rollback
+
+There is none beyond the dump file. Keep it.
+
+---
+
+## Verifying a restore
+
+Row counts, every table, old against new:
+
+```bash
+OLD=venice-ganesh-production
+NEW=venice-ganesh-prod-bom
+for t in admins audit_log draw_results draws entries entry_members events items \
+         login_attempts pattu_vastralu payments previous_winners settings slots \
+         villa_accounts villas; do
+  a=$(turso db shell $OLD "select count(*) from $t" | tail -1)
+  b=$(turso db shell $NEW "select count(*) from $t" | tail -1)
+  [ "$a" = "$b" ] && s="ok" || s="MISMATCH"
+  printf "%-18s old=%-6s new=%-6s %s\n" "$t" "$a" "$b" "$s"
+done
+```
+
+`villas` must be 247. `entries` and `entry_members` must match exactly — those
+are people's registrations.
+
+## After cutting over
+
+```bash
+curl -sI https://venice-ganesh.vercel.app/login | grep -i x-vercel-id
+```
+
+Still `bom1::bom1`. Then sign in at `/admin` and check the villa and entry counts
+read the same as before the move.
+
+### Stragglers
+
+If anyone registered between the dump and the cutover, their entry is on the old
+database only. Compare the old database's counts against the numbers you recorded
+at dump time — if `entries` grew, find them:
+
+```bash
+turso db shell venice-ganesh-production \
+  "select id, item_id, lead_villa_id, datetime(created_at/1000,'unixepoch','+5:30') \
+   from entries where created_at > <dump-time-in-ms> order by id"
+```
+
+There will be very few. Re-enter them from `/admin` using **register on a
+resident's behalf**, which writes them properly and leaves an audit entry —
+rather than hand-inserting rows.
+
+## Afterwards
+
+Keep the old database and the dump for a week. Then:
+
+```bash
+turso db destroy venice-ganesh-production        # the Tokyo one, by then renamed or stale
+```
+
+Update the `TURSO_DATABASE_URL` line in `PRODUCTION-CREDENTIALS.txt`.
