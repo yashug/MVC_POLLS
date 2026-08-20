@@ -24,6 +24,7 @@ const dict = {
   phone:          { en: "Mobile number", te: "మొబైల్ నంబర్" },
   continueBtn:    { en: "Continue", te: "కొనసాగించు" },
   firstTime:      { en: "This villa hasn't been claimed yet. Set a PIN to register it.", te: "ఈ విల్లా ఇంకా నమోదు కాలేదు. పిన్ పెట్టి నమోదు చేసుకోండి." },
+  alreadyRegistered: { en: "This villa is already registered", te: "ఈ విల్లా ఇప్పటికే నమోదైంది" },
   forgotPin:      { en: "Forgot the PIN? Ask the committee to reset it.", te: "పిన్ మర్చిపోయారా? కమిటీని రీసెట్ చేయమని అడగండి." },
 
   /* home */

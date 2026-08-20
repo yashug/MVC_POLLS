@@ -6,13 +6,14 @@ import { claimVilla, lookupVilla, signIn } from "@/app/login/actions";
 
 export type LoginLabels = Record<
   | "loginTitle" | "villaNumber" | "pin" | "setPin" | "confirmPin" | "yourName"
-  | "phone" | "continueBtn" | "firstTime" | "forgotPin" | "back",
+  | "phone" | "continueBtn" | "firstTime" | "forgotPin" | "back"
+  | "alreadyRegistered",
   string
 >;
 
 type Step =
   | { name: "villa" }
-  | { name: "signin"; villaNo: number; claimedByName?: string }
+  | { name: "signin"; villaNo: number }
   | { name: "claim"; villaNo: number };
 
 export function LoginForm({ labels: L }: { labels: LoginLabels }) {
@@ -43,7 +44,7 @@ export function LoginForm({ labels: L }: { labels: LoginLabels }) {
                   if (!res.ok) return res;
                   setStep(
                     res.claimed
-                      ? { name: "signin", villaNo: res.villaNo, claimedByName: res.claimedByName }
+                      ? { name: "signin", villaNo: res.villaNo }
                       : { name: "claim", villaNo: res.villaNo },
                   );
                   return { ok: true };
@@ -75,7 +76,7 @@ export function LoginForm({ labels: L }: { labels: LoginLabels }) {
           {step.name === "signin" && (
             <form action={(fd) => run(() => signIn(fd))}>
               <input type="hidden" name="villaNo" value={step.villaNo} />
-              <Plate villaNo={step.villaNo} sub={step.claimedByName} />
+              <Plate villaNo={step.villaNo} sub={L.alreadyRegistered} />
               <label htmlFor="pin" className="mt-6 block text-xs uppercase tracking-[0.18em] text-leaf-soft">
                 {L.pin}
               </label>

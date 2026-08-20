@@ -8,12 +8,13 @@ import { db } from "@/db";
 import { villaAccounts, villas } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { getSession } from "@/lib/session";
+import { checkThrottle, clearAttempts, lockedMessage, recordFailure } from "@/lib/throttle";
 
 const villaNoSchema = z.coerce.number().int().min(1).max(247);
 const pinSchema = z.string().regex(/^\d{4}$/, "PIN must be exactly 4 digits");
 
 export type LookupResult =
-  | { ok: true; villaNo: number; claimed: boolean; claimedByName?: string }
+  | { ok: true; villaNo: number; claimed: boolean }
   | { ok: false; error: string };
 
 export async function lookupVilla(formData: FormData): Promise<LookupResult> {
@@ -27,12 +28,9 @@ export async function lookupVilla(formData: FormData): Promise<LookupResult> {
     where: eq(villaAccounts.villaId, villa.id),
   });
 
-  return {
-    ok: true,
-    villaNo: villa.villaNo,
-    claimed: !!account,
-    claimedByName: account?.claimedByName,
-  };
+  // Deliberately not returning who registered it. The URL is shareable, and
+  // this endpoint would otherwise map all 247 villa numbers to resident names.
+  return { ok: true, villaNo: villa.villaNo, claimed: !!account };
 }
 
 export type AuthResult = { ok: false; error: string } | { ok: true };
@@ -91,12 +89,18 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
   const villa = await db.query.villas.findFirst({ where: eq(villas.villaNo, villaNo.data) });
   if (!villa) return { ok: false, error: "That villa number isn't on the list." };
 
+  const throttleKey = `villa:${villa.villaNo}`;
+  const throttle = await checkThrottle(throttleKey);
+  if (throttle.locked) return { ok: false, error: lockedMessage(throttle.minutes) };
+
   const account = await db.query.villaAccounts.findFirst({
     where: eq(villaAccounts.villaId, villa.id),
   });
   if (!account || !(await bcrypt.compare(pin, account.pinHash))) {
+    await recordFailure(throttleKey);
     return { ok: false, error: "That PIN doesn't match. Ask the committee to reset it if needed." };
   }
+  await clearAttempts(throttleKey);
 
   await db
     .update(villaAccounts)

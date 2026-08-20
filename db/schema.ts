@@ -35,6 +35,23 @@ export const villaAccounts = sqliteTable("villa_accounts", {
   resetCount: integer("reset_count").notNull().default(0),
 });
 
+/**
+ * Throttles sign-in guessing. A 4-digit PIN is only 10,000 combinations, which
+ * is minutes of work without this.
+ */
+export const loginAttempts = sqliteTable(
+  "login_attempts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    /** "villa:42" or "admin:admin" */
+    key: text("key").notNull(),
+    failedCount: integer("failed_count").notNull().default(0),
+    lockedUntil: integer("locked_until", { mode: "timestamp_ms" }),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => [uniqueIndex("login_attempts_key_uq").on(t.key)],
+);
+
 export const admins = sqliteTable(
   "admins",
   {

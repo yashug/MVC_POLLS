@@ -48,6 +48,7 @@ export default async function LoginPage() {
               setPin: t("setPin"), confirmPin: t("confirmPin"), yourName: t("yourName"),
               phone: t("phone"), continueBtn: t("continueBtn"), firstTime: t("firstTime"),
               forgotPin: t("forgotPin"), back: t("back"),
+              alreadyRegistered: t("alreadyRegistered"),
             }}
           />
         </div>

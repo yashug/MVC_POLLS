@@ -124,6 +124,19 @@ vercel deploy --prod
 
 With `APP_ENV=production` the testing banner and the reset button both disappear.
 
+### Before you share the link
+
+Anyone who has the URL can try to claim a villa that has not been registered yet.
+That is the accepted trade-off of PIN login, and it is why:
+
+- five wrong PINs lock that villa for 15 minutes (the committee can clear it from
+  the dashboard, which also clears the lockout)
+- the sign-in screen never shows who registered a villa, so the URL cannot be
+  used to map villa numbers to residents
+
+Share the link in the community WhatsApp group, not anywhere public, and ask
+residents to register early — a registered villa cannot be claimed by anyone else.
+
 Check before sharing with all 247 villas:
 
 - [ ] the red banner is **gone**
@@ -131,6 +144,10 @@ Check before sharing with all 247 villas:
 - [ ] the admin password is different from the preview one
 - [ ] `/admin` shows `0 of 247 villas have signed in`
 - [ ] the item dates on the dashboard are the ones you want
+- [ ] you can sign in at `/admin` with the new password
+- [ ] a test villa can register, then use **Clear all test data** — wait, that
+      button is gone in production, so do this on preview instead and confirm
+      production starts empty
 
 ## Backups
 

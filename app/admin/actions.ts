@@ -14,6 +14,7 @@ import {
 } from "@/lib/draw";
 import { allocateSlots, clearAllocation, reassignEntry } from "@/lib/allocate";
 import { isProduction } from "@/lib/env";
+import { clearAttempts } from "@/lib/throttle";
 import { getActiveEvent, setSetting } from "@/lib/items";
 import type { ItemStatus } from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
@@ -80,6 +81,7 @@ export async function resetVillaPin(villaNo: number): Promise<Res> {
   if (!account) return { ok: false, error: `Villa ${villaNo} hasn't set a PIN yet.` };
 
   await db.delete(villaAccounts).where(eq(villaAccounts.villaId, villa.id));
+  await clearAttempts(`villa:${villa.villaNo}`);
   await audit({
     actorType: "admin", actorId: "admin", action: "villa.pin_reset",
     entity: "villa", entityId: villa.id, before: { claimedByName: account.claimedByName },
