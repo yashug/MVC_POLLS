@@ -1,26 +1,66 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ── Tokens ────────────────────────────────────────────────────────────
+   Drawn from a Gadwal silk saree: mango-leaf toranam ground, banana-leaf
+   ink, antique zari gold. The draw stage inverts to a night mandapam.   */
+@theme {
+  --color-toran: #eff4ea;
+  --color-paper: #fafcf7;
+  --color-leaf: #1f3d2b;
+  --color-leaf-soft: #4a6b54;
+  --color-leaf-faint: #8aa392;
+  --color-zari: #a8791c;
+  --color-zari-light: #d4af57;
+  --color-zari-pale: #f0e2c0;
+  --color-kumkum: #9e2b25;
+  --color-kumkum-soft: #c4564f;
+  --color-turmeric: #e9b44c;
+  --color-clay: #b5673f;
+  --color-night: #10160f;
+  --color-night-soft: #1b241a;
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-karla), ui-sans-serif, system-ui, sans-serif;
+  --font-telugu: var(--font-noto-telugu), var(--font-karla), sans-serif;
+  --font-mono: var(--font-space-mono), ui-monospace, monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-toran);
+  color: var(--color-leaf);
+  font-family: var(--font-sans);
+  font-feature-settings: "kern", "liga";
+}
+
+:lang(te) {
+  font-family: var(--font-telugu);
+}
+
+/* Villa numbers are identity here — always set as data. */
+.villa-no {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum";
+  letter-spacing: -0.03em;
+}
+
+/* Keyboard users get a real, visible ring everywhere. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-kumkum);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

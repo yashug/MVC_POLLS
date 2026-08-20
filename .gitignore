@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+data/*.db*
+.env.local
+
+# keep the local database directory, not its contents
+!data/.gitkeep

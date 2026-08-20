@@ -1,0 +1,1 @@
+ALTER TABLE `draws` ADD `spin_starts_at` integer;
