@@ -4,6 +4,12 @@ import { entries, entryMembers, slots, villas } from "@/db/schema";
 
 export type Slot = typeof slots.$inferSelect;
 
+/** Fixed pooja times from the 19 Aug committee meeting. Meals are not fixed. */
+export const PERIOD_TIME: Record<string, string> = {
+  morning: "9:00 AM",
+  evening: "6:00 PM",
+};
+
 export const PERIOD_LABEL: Record<string, { en: string; te: string }> = {
   morning: { en: "Morning", te: "ఉదయం" },
   evening: { en: "Evening", te: "సాయంత్రం" },
@@ -100,5 +106,7 @@ export const slotLabel = (s: Slot, lang: "en" | "te") => {
   const date = new Intl.DateTimeFormat(lang === "te" ? "te-IN" : "en-IN", {
     timeZone: "UTC", day: "numeric", month: "short",
   }).format(d);
-  return `${date} · ${PERIOD_LABEL[s.period]?.[lang] ?? s.period}`;
+  const period = PERIOD_LABEL[s.period]?.[lang] ?? s.period;
+  const time = PERIOD_TIME[s.period];
+  return time ? `${date} · ${period}, ${time}` : `${date} · ${period}`;
 };

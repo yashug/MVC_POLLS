@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ZariBand } from "@/components/ZariBand";
-import { getT, pick } from "@/lib/i18n";
+import { getT } from "@/lib/i18n";
 import { getActiveEvent, getItemBySlug } from "@/lib/items";
-import { getSlotEntries, getSlots, PERIOD_LABEL } from "@/lib/slots";
+import { getSlotEntries, getSlots, PERIOD_LABEL, PERIOD_TIME } from "@/lib/slots";
 import { requireVilla } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -85,6 +85,11 @@ export default async function SchedulePage() {
                     <li key={i} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
                       <span className="w-24 shrink-0 text-[0.7rem] uppercase tracking-[0.1em] text-leaf-faint">
                         {PERIOD_LABEL[r.period]?.[lang] ?? r.period}
+                        {PERIOD_TIME[r.period] && (
+                          <span className="block normal-case tracking-normal text-leaf-faint/80">
+                            {PERIOD_TIME[r.period]}
+                          </span>
+                        )}
                       </span>
                       <span className="text-sm font-semibold text-leaf">
                         {r.kind === "pooja"
@@ -127,9 +132,44 @@ export default async function SchedulePage() {
         })}
       </ol>
 
-      <p className="mt-5 text-center text-xs text-leaf-faint">
-        {pooja && pick(pooja, "title", lang)} · {food && pick(food, "title", lang)}
-      </p>
+      <section className="mt-7 overflow-hidden rounded-lg bg-paper ring-1 ring-leaf/10">
+        <ZariBand height={9} />
+        <div className="px-4 py-4">
+          <h2 className="font-[family-name:var(--font-display)] text-lg text-leaf">
+            {lang === "te" ? "ఉత్సవం అంతటా" : "Through the festival"}
+          </h2>
+          <p className="mt-1 text-xs leading-relaxed text-leaf-faint">
+            {lang === "te"
+              ? "కమిటీ ఖరారు చేసినవి. తేదీలు, సమయాలు విడిగా ప్రకటిస్తారు."
+              : "Confirmed by the committee. Days and times will be announced separately."}
+          </p>
+
+          <ul className="mt-3 grid gap-x-5 gap-y-1.5 text-sm text-leaf-soft sm:grid-cols-2">
+            {(lang === "te"
+              ? [
+                  "సరస్వతి పూజ", "కుంకుమార్చన", "గణపతి హోమం",
+                  "పిల్లల కార్యక్రమాలు", "నృత్య ప్రదర్శనలు", "సంగీత కార్యక్రమాలు", "డీజే",
+                ]
+              : [
+                  "Saraswathi Pooja", "Kumkumarchana", "Ganapathi Homam",
+                  "Children's activities", "Dance performances", "Music programmes", "DJ evening",
+                ]
+            ).map((x) => (
+              <li key={x} className="flex gap-2">
+                <span aria-hidden="true" className="text-zari">·</span>
+                {x}
+              </li>
+            ))}
+          </ul>
+
+          <p className="mt-4 border-t border-leaf/10 pt-3 text-sm leading-relaxed text-leaf">
+            <b>{lang === "te" ? "నిమజ్జనం" : "Nimajjanam"}</b>{" "}
+            {lang === "te"
+              ? "సెప్టెంబర్ 19 సాయంత్రం — ఊరేగింపు, ఉట్టి ఉత్సవం, డప్పులు. వాహనం, మార్గం, పోలీసు అనుమతులు ఏర్పాటు చేయబడ్డాయి."
+              : "on the evening of 19 September — procession, Utti Utsavam and drums. Vehicle, route and police permissions are arranged."}
+          </p>
+        </div>
+      </section>
     </>
   );
 }

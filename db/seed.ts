@@ -93,9 +93,9 @@ async function main() {
         titleEn: "Ganesh idol donation",
         titleTe: "గణేష్ విగ్రహ విరాళం",
         blurbEn:
-          "Sponsor the Ganesh idol for Venice City. Enter on your own, or as a group of up to 4 villas.",
+          "Sponsor the Ganesh idol for Venice City — POP, 6 ft or under. Enter on your own, or as a group of up to 4 villas.",
         blurbTe:
-          "వేనిస్ సిటీ గణేష్ విగ్రహాన్ని సమర్పించండి. ఒక్కరుగా లేదా 4 విల్లాల వరకు గ్రూప్‌గా పాల్గొనవచ్చు.",
+          "వేనిస్ సిటీ గణేష్ విగ్రహాన్ని సమర్పించండి — POP, 6 అడుగుల లోపు. ఒక్కరుగా లేదా 4 విల్లాల వరకు గ్రూప్‌గా పాల్గొనవచ్చు.",
         auctionNoteEn:
           "The winner of the idol donation will also have the option to donate pattu vastralu. This is not mandatory — if the winner chooses not to, the committee will arrange it. Pattu vastralu is auctioned separately, offline.",
         auctionNoteTe:
@@ -117,9 +117,9 @@ async function main() {
         titleEn: "Daily pooja",
         titleTe: "నిత్య పూజ",
         blurbEn:
-          "Sit for pooja during the festival. Pick one session — if more villas want a session than it holds, that session goes to a draw.",
+          "Sit for pooja during the festival. Morning pooja is at 9:00 AM and evening pooja at 6:00 PM. Pick one session — if more villas want a session than it holds, that session goes to a draw.",
         blurbTe:
-          "ఉత్సవంలో పూజకు కూర్చోండి. ఒక సమయాన్ని ఎంచుకోండి — ఒక సమయానికి ఎక్కువ విల్లాలు కోరితే, ఆ సమయానికి లక్కీ డిప్ నిర్వహిస్తాం.",
+          "ఉత్సవంలో పూజకు కూర్చోండి. ఉదయం పూజ 9:00కి, సాయంత్రం పూజ 6:00కి. ఒక సమయాన్ని ఎంచుకోండి — ఒక సమయానికి ఎక్కువ విల్లాలు కోరితే, ఆ సమయానికి లక్కీ డిప్ నిర్వహిస్తాం.",
         maxGroupSize: 1,
         maxEntriesPerVilla: 1,
         collectsSlot: true,
@@ -137,8 +137,10 @@ async function main() {
         titleTe: "9 కిలోల లడ్డూ విరాళం",
         blurbEn: "Sponsor the 9 kg laddu. Enter on your own or with one other villa.",
         blurbTe: "9 కిలోల లడ్డూను సమర్పించండి. ఒక్కరుగా లేదా మరో విల్లాతో కలిసి పాల్గొనవచ్చు.",
-        auctionNoteEn: "The 9 kg laddu will be auctioned at the festival. The auction is held offline.",
-        auctionNoteTe: "9 కిలోల లడ్డూ ఉత్సవంలో వేలం వేయబడుతుంది. వేలం ఆఫ్‌లైన్‌లో జరుగుతుంది.",
+        auctionNoteEn:
+          "The 9 kg laddu is auctioned on Nimajjanam day, 19 September. The auction is held in person, not in this app.",
+        auctionNoteTe:
+          "9 కిలోల లడ్డూ నిమజ్జనం రోజు, సెప్టెంబర్ 19న వేలం వేయబడుతుంది. వేలం ప్రత్యక్షంగా జరుగుతుంది, ఈ యాప్‌లో కాదు.",
         maxGroupSize: 2,
         maxEntriesPerVilla: 1,
         requiresAcceptance: true,
