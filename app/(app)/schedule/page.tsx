@@ -14,8 +14,10 @@ export default async function SchedulePage() {
   const { t, lang } = await getT();
   const event = await getActiveEvent();
 
-  const pooja = await getItemBySlug(event.id, "pooja-slots");
-  const food = await getItemBySlug(event.id, "annadanam");
+  const [pooja, food] = await Promise.all([
+    getItemBySlug(event.id, "pooja-slots"),
+    getItemBySlug(event.id, "annadanam"),
+  ]);
 
   const rows: {
     date: string;
@@ -27,13 +29,17 @@ export default async function SchedulePage() {
     lockNote: string | null;
   }[] = [];
 
-  for (const [item, kind] of [
-    [pooja, "pooja"] as const,
-    [food, "food"] as const,
-  ]) {
-    if (!item) continue;
-    const slots = await getSlots(item.id);
-    const entries = await getSlotEntries(item.id);
+  const booked = await Promise.all(
+    ([[pooja, "pooja"], [food, "food"]] as const).map(async ([item, kind]) => {
+      if (!item) return null;
+      const [slots, entries] = await Promise.all([getSlots(item.id), getSlotEntries(item.id)]);
+      return { kind, slots, entries };
+    }),
+  );
+
+  for (const group of booked) {
+    if (!group) continue;
+    const { kind, slots, entries } = group;
     for (const s of slots) {
       const here = entries.filter((e) => e.assignedSlotId === s.id);
       rows.push({

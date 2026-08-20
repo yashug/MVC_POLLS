@@ -21,8 +21,10 @@ export default async function AdminDashboard() {
 
   const cards: AdminItem[] = await Promise.all(
     rows.map(async (item) => {
-      const entries = await getEntriesWithMembers(item.id);
-      const draw = await getLatestDraw(item.id);
+      const [entries, draw] = await Promise.all([
+        getEntriesWithMembers(item.id),
+        getLatestDraw(item.id),
+      ]);
       return {
         id: item.id,
         slug: item.slug,

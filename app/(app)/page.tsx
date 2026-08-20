@@ -6,7 +6,7 @@ import { InviteBanner } from "@/components/InviteBanner";
 import { Shrine } from "@/components/Shrine";
 import { getLatestDraw } from "@/lib/draw";
 import {
-  countEntries, getActiveEvent, getItems, getPendingInvites, getVillaEntry, itemState,
+  countEntries, getActiveEvent, getItems, getPendingInvites, hasEntry, itemState,
   type ItemState,
 } from "@/lib/items";
 import { requireVilla } from "@/lib/session";
@@ -19,27 +19,32 @@ export default async function Home() {
   const event = await getActiveEvent();
   const allItems = await getItems(event.id);
 
-  const cards = await Promise.all(
-    allItems.map(async (item) => ({
-      item,
-      state: itemState(item),
-      count: await countEntries(item.id),
-      mine: await getVillaEntry(item.id, villaId),
-    })),
-  );
+  // Every query below is independent, so they go out together. Run in sequence
+  // they were a dozen round trips to the database, and the page waited for all
+  // of them end to end.
+  const luckyDips = allItems.filter((item) => item.kind === "lucky_dip");
 
-  const invites = await getPendingInvites(villaId);
+  const [cards, invites, latestDraws] = await Promise.all([
+    Promise.all(
+      allItems.map(async (item) => {
+        const [count, mine] = await Promise.all([
+          countEntries(item.id),
+          hasEntry(item.id, villaId),
+        ]);
+        return { item, state: itemState(item), count, mine };
+      }),
+    ),
+    getPendingInvites(villaId),
+    Promise.all(luckyDips.map((item) => getLatestDraw(item.id))),
+  ]);
 
   // A draw that's been prepared but not yet published is worth watching — people
   // can open the page early and it starts on its own.
-  const watchable = [];
-  for (const item of allItems) {
-    if (item.kind !== "lucky_dip") continue;
-    const draw = await getLatestDraw(item.id);
-    if (draw && draw.status !== "published") {
-      watchable.push({ item, live: !!draw.spinStartsAt });
-    }
-  }
+  const watchable = luckyDips.flatMap((item, i) => {
+    const draw = latestDraws[i];
+    if (!draw || draw.status === "published") return [];
+    return [{ item, live: !!draw.spinStartsAt }];
+  });
 
   const stateLabel: Record<ItemState, string> = {
     not_open: t("notOpenYet"),

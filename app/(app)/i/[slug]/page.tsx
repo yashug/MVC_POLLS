@@ -9,7 +9,7 @@ import {
   countEntries, getActiveEvent, getItemBySlug, getVillaEntry, isEditable, itemState,
 } from "@/lib/items";
 import {
-  allocatedCounts, getSlots, getSlotEntries, getVillaSlotEntries, requestCounts, slotLabel,
+  allocatedCounts, getSlots, getSlotEntries, getVillaEntryIds, requestCounts, slotLabel,
 } from "@/lib/slots";
 import { requireVilla } from "@/lib/session";
 
@@ -28,15 +28,22 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
   if (state === "not_open") notFound();
 
   const editable = isEditable(item);
-  const count = await countEntries(item.id);
-  const mine = await getVillaEntry(item.id, villaId);
   const auctionNote = pick(item, "auctionNote", lang);
   const isDraw = item.kind === "lucky_dip";
 
-  // Slot-based items (pooja, annadanam) carry their own booking data.
-  const slotRows = item.collectsSlot ? await getSlots(item.id) : [];
-  const slotEntries = item.collectsSlot ? await getSlotEntries(item.id) : [];
-  const myBookings = item.collectsSlot ? await getVillaSlotEntries(item.id, villaId) : [];
+  // Slot-based items (pooja, annadanam) carry their own booking data. Nothing
+  // here depends on anything else here, so it all goes out at once.
+  const [count, mine, slotRows, slotEntries, myEntryIds] = await Promise.all([
+    countEntries(item.id),
+    getVillaEntry(item.id, villaId),
+    item.collectsSlot ? getSlots(item.id) : [],
+    item.collectsSlot ? getSlotEntries(item.id) : [],
+    item.collectsSlot ? getVillaEntryIds(item.id, villaId) : new Set<number>(),
+  ]);
+
+  // Which of those entries are ours is a filter, not a second trip for the
+  // same rows.
+  const myBookings = slotEntries.filter((e) => myEntryIds.has(e.id));
   const reqCounts = requestCounts(slotEntries);
   const allocCounts = allocatedCounts(slotEntries);
   // Once anything has been assigned, the page shows assignments rather than requests.

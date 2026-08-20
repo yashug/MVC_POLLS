@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { entries, entryMembers, items, settings, villas } from "@/db/schema";
 
@@ -70,11 +70,24 @@ export async function getEntriesWithMembers(itemId: number) {
 
 /** A group is one ticket however many villas are in it — so this is the ticket count. */
 export async function countEntries(itemId: number) {
-  const rows = await db.query.entries.findMany({
-    where: and(eq(entries.itemId, itemId), eq(entries.status, "active")),
-    columns: { id: true },
+  const [row] = await db
+    .select({ n: count() })
+    .from(entries)
+    .where(and(eq(entries.itemId, itemId), eq(entries.status, "active")));
+  return row?.n ?? 0;
+}
+
+/**
+ * Whether this villa is in an entry at all. The home page shows five of these
+ * and only needs the tick — `getVillaEntry` would pull every entry, member and
+ * villa for each item to answer the same yes/no.
+ */
+export async function hasEntry(itemId: number, villaId: number) {
+  const membership = await db.query.entryMembers.findFirst({
+    where: and(eq(entryMembers.itemId, itemId), eq(entryMembers.villaId, villaId)),
+    columns: { entryId: true },
   });
-  return rows.length;
+  return membership != null;
 }
 
 /** The entry this villa belongs to, whether they created it or were added to it. */

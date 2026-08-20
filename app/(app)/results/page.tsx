@@ -17,26 +17,39 @@ export default async function ResultsPage() {
   const { t, lang } = await getT();
   const event = await getActiveEvent();
 
-  const published = [];
-  for (const item of await getItems(event.id)) {
-    const draw = await getLatestDraw(item.id);
-    if (!draw || draw.status !== "published") continue;
-    const detail = await getDrawDetail(draw.id);
-    if (!detail) continue;
+  // Results day is when the most people are on the page at once, so the items
+  // are resolved side by side rather than one draw at a time.
+  const allItems = await getItems(event.id);
+  const latestDraws = await Promise.all(allItems.map((item) => getLatestDraw(item.id)));
 
-    const winner = detail.ranked[0];
-    const winnerEntry = await db.query.entryMembers.findMany({
-      where: (m, { eq: e }) => e(m.entryId, winner.entryId),
-    });
-    const iWon = winnerEntry.some((m) => m.villaId === villaId);
-    const pattu = item.slug === "idol-donation"
-      ? await db.query.pattuVastralu.findFirst({
-          where: eq(pattuVastralu.drawResultId, winner.id),
-        })
-      : null;
+  const publishedDraws = allItems.flatMap((item, i) => {
+    const draw = latestDraws[i];
+    return draw && draw.status === "published" ? [{ item, draw }] : [];
+  });
 
-    published.push({ item, draw, detail, winner, iWon, pattu });
-  }
+  const published = (
+    await Promise.all(
+      publishedDraws.map(async ({ item, draw }) => {
+        const detail = await getDrawDetail(draw.id);
+        if (!detail) return [];
+
+        const winner = detail.ranked[0];
+        const [winnerEntry, pattu] = await Promise.all([
+          db.query.entryMembers.findMany({
+            where: (m, { eq: e }) => e(m.entryId, winner.entryId),
+          }),
+          item.slug === "idol-donation"
+            ? db.query.pattuVastralu.findFirst({
+                where: eq(pattuVastralu.drawResultId, winner.id),
+              })
+            : null,
+        ]);
+
+        const iWon = winnerEntry.some((m) => m.villaId === villaId);
+        return [{ item, draw, detail, winner, iWon, pattu: pattu ?? null }];
+      }),
+    )
+  ).flat();
 
   return (
     <>

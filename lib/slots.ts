@@ -90,14 +90,24 @@ export function allocatedCounts(entries: SlotEntry[]) {
   return map;
 }
 
-/** Everything this villa has booked for a slot-based item. */
-export async function getVillaSlotEntries(itemId: number, villaId: number) {
+/**
+ * The entries this villa belongs to, as ids only. A caller that already has the
+ * full list from `getSlotEntries` filters it with this instead of fetching the
+ * whole list a second time.
+ */
+export async function getVillaEntryIds(itemId: number, villaId: number) {
   const memberships = await db.query.entryMembers.findMany({
     where: and(eq(entryMembers.itemId, itemId), eq(entryMembers.villaId, villaId)),
+    columns: { entryId: true },
   });
-  if (memberships.length === 0) return [];
+  return new Set(memberships.map((m) => m.entryId));
+}
+
+/** Everything this villa has booked for a slot-based item. */
+export async function getVillaSlotEntries(itemId: number, villaId: number) {
+  const mine = await getVillaEntryIds(itemId, villaId);
+  if (mine.size === 0) return [];
   const all = await getSlotEntries(itemId);
-  const mine = new Set(memberships.map((m) => m.entryId));
   return all.filter((e) => mine.has(e.id));
 }
 
