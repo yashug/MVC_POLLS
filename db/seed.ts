@@ -1,15 +1,61 @@
 import bcrypt from "bcryptjs";
 import { db } from "./index";
 import {
-  admins, events, items, previousWinners, settings, slots, villas,
+  admins, auditLog, drawResults, draws, entries, entryMembers, events, items,
+  loginAttempts, pattuVastralu, payments, previousWinners, settings, slots,
+  villaAccounts, villas,
 } from "./schema";
 import { ist } from "../lib/ist";
+import { describeTarget } from "../lib/db-target";
 
 const VILLA_COUNT = 247;
 const YEAR = 2026;
 
+/** Child rows first — every one of these points upward. */
+async function wipe() {
+  await db.delete(auditLog);
+  await db.delete(loginAttempts);
+  await db.delete(pattuVastralu);
+  await db.delete(drawResults);
+  await db.delete(draws);
+  await db.delete(payments);
+  await db.delete(entryMembers);
+  await db.delete(entries);
+  await db.delete(villaAccounts);
+  await db.delete(slots);
+  await db.delete(items);
+  await db.delete(settings);
+  await db.delete(previousWinners);
+  await db.delete(villas);
+  await db.delete(admins);
+  await db.delete(events);
+}
+
 async function main() {
   const now = new Date();
+  const target = describeTarget();
+  console.log(`→ ${target}`);
+
+  const existing = await db.query.events.findFirst();
+  if (existing) {
+    if (process.env.FORCE_RESEED !== "1") {
+      console.error(
+        [
+          "",
+          `This database already holds ${existing.name} ${existing.year}.`,
+          "Seeding again would duplicate every villa, item and session.",
+          "",
+          "  • wrong database?  put TURSO_DATABASE_URL / TURSO_AUTH_TOKEN in front of the command",
+          "  • local, start over?  npm run db:reset",
+          "  • really wipe THIS one and reseed?  FORCE_RESEED=1 npm run db:seed",
+          "",
+        ].join("\n"),
+      );
+      process.exit(1);
+    }
+    console.log(`  FORCE_RESEED=1 — erasing everything in ${target} first`);
+    await wipe();
+  }
 
   /* Event ------------------------------------------------------------- */
   const [event] = await db
@@ -192,7 +238,7 @@ async function main() {
   void previousWinners; // 2026 is year one — nothing to exclude yet
   void idol; void laddu9; void laddu2;
 
-  console.log(`✓ ${event.name} ${event.year}`);
+  console.log(`✓ ${event.name} ${event.year} — ${target}`);
   console.log(`✓ ${VILLA_COUNT} villas`);
   console.log(`✓ 5 items · ${poojaSlots.length} pooja slots · ${foodSlots.length} annadanam slots`);
   console.log(`✓ admin / ${adminPassword}`);

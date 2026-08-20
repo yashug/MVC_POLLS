@@ -13,7 +13,14 @@ npm run dev            # http://localhost:3000
 ```
 
 `npm run db:reset` wipes and rebuilds from scratch. **Stop the dev server first** —
-it holds an open handle to the database file.
+it holds an open handle to the database file. Reset is always local: it ignores
+any Turso credentials in the environment, so it cannot reach a hosted database.
+
+`db:migrate` and `db:seed` do follow those credentials, and both print which
+database they are about to touch. Watch that line — `tsx` auto-loads `.env`, so
+credentials sitting in that file silently redirect every command to the remote
+database. Seeding a database that already holds an event is refused rather than
+duplicated; pass `FORCE_RESEED=1` to wipe and start over.
 
 ### Environment
 
@@ -163,18 +170,15 @@ add one once the idol is chosen.
 
 ## Music
 
-The landing page plays an ambient tanpura drone with an occasional temple bell.
-It is synthesised in the browser with the Web Audio API rather than streamed, so
-there is no audio file to load, nothing to license, and it works offline.
+`public/ganpati-namah.mp3` plays on a loop, fading in and out rather than cutting.
+Swap the file to change the track, or edit `TRACK` in
+`components/AmbientAudio.tsx` to point somewhere else.
 
 It is on by default, but browsers refuse to start audio until someone actually
 interacts with the page — so it begins at the first tap, which on the login
 screen is the villa field. One tap on the control mutes it, and that choice is
-remembered.
-
-To use a real recording instead, replace the synthesis in
-`components/AmbientAudio.tsx` with an `<audio>` element pointing at a file in
-`public/` — and make sure you have the right to use it.
+remembered across visits. The element lives at module scope, so the music carries
+across navigation instead of restarting on every page.
 
 ## Design
 

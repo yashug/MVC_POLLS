@@ -1,148 +1,100 @@
 "use client";
 
 import { Volume2, VolumeX } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const STORAGE_KEY = "vc-ganesh-music";
-
-/** Tanpura tuning: Pa, Sa, Sa, lower Sa — the drone every mandapam sits on. */
-const STRINGS = [98.0, 130.81, 130.81, 65.41];
-/** Struck-metal partials. Deliberately inharmonic, which is what makes it a bell. */
-const BELL_PARTIALS = [1, 2.76, 5.4, 8.93];
-
-type Engine = { stop: () => void };
+const TRACK = "/ganpati-namah.mp3";
+const VOLUME = 0.35;
+const FADE_MS = 1400;
 
 /**
- * Ambient sound, synthesised in the browser rather than streamed: a plucked
- * tanpura drone with an occasional temple bell. No audio file, so it costs
- * nothing to load and works with no network.
+ * One audio element for the whole app, deliberately outside React. The control
+ * lives in the root layout, and keeping the element at module scope means the
+ * music carries across navigation instead of restarting on every page.
+ */
+let audio: HTMLAudioElement | null = null;
+let fadeTimer: number | null = null;
+
+function stopFade() {
+  if (fadeTimer !== null) {
+    clearInterval(fadeTimer);
+    fadeTimer = null;
+  }
+}
+
+/** Ramp the volume so it never slams in or cuts out. */
+function fadeTo(target: number, onDone?: () => void) {
+  if (!audio) return;
+  stopFade();
+  const from = audio.volume;
+  const steps = Math.max(1, Math.round(FADE_MS / 50));
+  let i = 0;
+  fadeTimer = window.setInterval(() => {
+    if (!audio) return stopFade();
+    i += 1;
+    audio.volume = Math.min(1, Math.max(0, from + (target - from) * (i / steps)));
+    if (i >= steps) {
+      stopFade();
+      onDone?.();
+    }
+  }, 50);
+}
+
+/**
+ * Ambient devotional music for the festival.
  *
- * On by default, muted with one tap and remembered after that.
+ * On by default, but browsers refuse to start audio before a real gesture, so
+ * playback is armed and begins on the first tap — which on the login screen is
+ * the villa field. One tap mutes it and the choice is remembered.
  */
 export function AmbientAudio() {
   const [on, setOn] = useState(false);
-  const engineRef = useRef<Engine | null>(null);
+  const [available, setAvailable] = useState(true);
 
-  const start = useCallback(() => {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!Ctx) return null;
-    const ctx = new Ctx();
-
-    const master = ctx.createGain();
-    master.gain.setValueAtTime(0.0001, ctx.currentTime);
-    master.gain.exponentialRampToValueAtTime(0.085, ctx.currentTime + 3);
-
-    // Rolls the top off so the sawtooths read as strings, not a buzzer.
-    const tone = ctx.createBiquadFilter();
-    tone.type = "lowpass";
-    tone.frequency.value = 1150;
-    tone.Q.value = 0.6;
-    tone.connect(master);
-    master.connect(ctx.destination);
-
-    const oscillators: OscillatorNode[] = [];
-    const stringGains = STRINGS.map((freq) => {
-      const g = ctx.createGain();
-      g.gain.value = 0;
-      g.connect(tone);
-      // Two slightly detuned voices per string give the shimmer a single one lacks.
-      for (const cents of [-4, 4]) {
-        const o = ctx.createOscillator();
-        o.type = "sawtooth";
-        o.frequency.value = freq;
-        o.detune.value = cents;
-        o.connect(g);
-        o.start();
-        oscillators.push(o);
-      }
-      return g;
-    });
-
-    // A tanpura is plucked string by string, not held as a chord.
-    let next = 0;
-    const pluck = () => {
-      const g = stringGains[next % stringGains.length];
-      const t = ctx.currentTime;
-      g.gain.cancelScheduledValues(t);
-      g.gain.setValueAtTime(Math.max(g.gain.value, 0.0001), t);
-      g.gain.linearRampToValueAtTime(0.22, t + 0.06);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 4.2);
-      next += 1;
-    };
-    pluck();
-    const pluckTimer = setInterval(pluck, 2400);
-
-    const ringBell = () => {
-      const t = ctx.currentTime;
-      const bell = ctx.createGain();
-      bell.gain.value = 0.5;
-      bell.connect(master);
-      BELL_PARTIALS.forEach((ratio, i) => {
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.type = "sine";
-        o.frequency.value = 320 * ratio;
-        const peak = 0.16 / (i + 1);
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.linearRampToValueAtTime(peak, t + 0.01);
-        // Higher partials die first, the way struck metal actually behaves.
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 7 - i * 1.2);
-        o.connect(g);
-        g.connect(bell);
-        o.start(t);
-        o.stop(t + 8);
-      });
-      setTimeout(() => bell.disconnect(), 9000);
-    };
-    const bellTimer = setInterval(ringBell, 34000);
-    const firstBell = setTimeout(ringBell, 6000);
-
-    return {
-      stop: () => {
-        clearInterval(pluckTimer);
-        clearInterval(bellTimer);
-        clearTimeout(firstBell);
-        const t = ctx.currentTime;
-        master.gain.cancelScheduledValues(t);
-        master.gain.setValueAtTime(master.gain.value, t);
-        master.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
-        setTimeout(() => {
-          oscillators.forEach((o) => {
-            try {
-              o.stop();
-            } catch {
-              /* already stopped */
-            }
-          });
-          void ctx.close();
-        }, 800);
-      },
-    };
+  const play = useCallback(() => {
+    if (!audio) {
+      const el = new Audio(TRACK);
+      el.loop = true;
+      el.preload = "auto";
+      el.volume = 0;
+      el.addEventListener("error", () => setAvailable(false));
+      audio = el;
+    }
+    // Calling play() on an already-playing element resolves immediately, so this
+    // doubles as "tell me the current state" without restarting the track.
+    const wasPlaying = !audio.paused;
+    if (!wasPlaying) audio.volume = 0;
+    audio
+      .play()
+      .then(() => {
+        setOn(true);
+        if (!wasPlaying) fadeTo(VOLUME);
+      })
+      // Autoplay refused — stay armed and wait for a gesture.
+      .catch(() => setOn(false));
   }, []);
 
   const toggle = () => {
     if (on) {
-      engineRef.current?.stop();
-      engineRef.current = null;
+      fadeTo(0, () => audio?.pause());
       setOn(false);
       localStorage.setItem(STORAGE_KEY, "off");
     } else {
-      engineRef.current = start();
-      setOn(true);
+      play();
       localStorage.setItem(STORAGE_KEY, "on");
     }
   };
 
-  // On by default. Browsers refuse to start audio without a real gesture, so the
-  // best that can be done is to arm it and begin on the first tap — which on the
-  // login screen is the villa field anyway. Only an explicit mute opts out.
+  // Armed unless explicitly muted before.
   useEffect(() => {
     if (localStorage.getItem(STORAGE_KEY) === "off") return;
+    if (audio && !audio.paused) {
+      play(); // resolves at once and syncs the button from its callback
+      return;
+    }
     const resume = () => {
-      if (!engineRef.current) {
-        engineRef.current = start();
-        setOn(true);
-      }
+      play();
       window.removeEventListener("pointerdown", resume);
       window.removeEventListener("keydown", resume);
     };
@@ -152,9 +104,9 @@ export function AmbientAudio() {
       window.removeEventListener("pointerdown", resume);
       window.removeEventListener("keydown", resume);
     };
-  }, [start]);
+  }, [play]);
 
-  useEffect(() => () => engineRef.current?.stop(), []);
+  if (!available) return null;
 
   return (
     <button

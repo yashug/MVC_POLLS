@@ -10,7 +10,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env.local db/migrate.ts",
     "db:seed": "tsx --env-file-if-exists=.env.local db/seed.ts",
-    "db:reset": "rm -f data/mvc-polls.db* && npm run db:migrate && npm run db:seed"
+    "db:reset": "rm -f data/mvc-polls.db* && LOCAL_ONLY=1 npm run db:migrate && LOCAL_ONLY=1 npm run db:seed"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
