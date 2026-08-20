@@ -1,7 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
@@ -287,6 +287,29 @@ export async function resetTestDataAction(): Promise<Res> {
   await audit({
     actorType: "admin", actorId: "admin", action: "preview.data_reset",
     entity: "event",
+  });
+  refresh();
+  return { ok: true };
+}
+
+/** Set the same number of places on every unlocked session of an item. */
+export async function setAllSlotCapacities(
+  itemId: number,
+  capacity: number,
+): Promise<Res> {
+  await requireAdmin();
+  if (!Number.isInteger(capacity) || capacity < 0 || capacity > 999) {
+    return { ok: false, error: "Enter a number of places between 0 and 999." };
+  }
+
+  await db
+    .update(slots)
+    .set({ capacity })
+    .where(and(eq(slots.itemId, itemId), eq(slots.isLocked, false)));
+
+  await audit({
+    actorType: "admin", actorId: "admin", action: "slots.capacity_set_for_all",
+    entity: "item", entityId: itemId, after: { capacity },
   });
   refresh();
   return { ok: true };

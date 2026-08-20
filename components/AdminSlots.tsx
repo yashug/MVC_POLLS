@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import {
-  allocateSlotsAction, clearAllocationAction, reassignEntryAction, updateSlotConfig,
-  type Res,
+  allocateSlotsAction, clearAllocationAction, reassignEntryAction, setAllSlotCapacities,
+  updateSlotConfig, type Res,
 } from "@/app/admin/actions";
 
 export type AdminSlotView = {
@@ -44,6 +44,25 @@ export function AdminSlots({
 
   const totalRequests = slots.reduce((n, s) => n + s.requested.length, 0);
 
+  // Sessions can differ, so show the most common value rather than the first —
+  // otherwise one overridden session misrepresents the whole festival.
+  const commonCapacity = (() => {
+    const counts = new Map<number, number>();
+    for (const s of slots) {
+      if (s.isLocked) continue;
+      counts.set(s.capacity, (counts.get(s.capacity) ?? 0) + 1);
+    }
+    let best = 5;
+    let seen = 0;
+    for (const [cap, n] of counts) {
+      if (n > seen) {
+        seen = n;
+        best = cap;
+      }
+    }
+    return best;
+  })();
+
   return (
     <div className="min-h-dvh bg-night px-5 py-6 text-zari-pale">
       <div className="mx-auto max-w-3xl">
@@ -82,6 +101,10 @@ export function AdminSlots({
             All entries
           </Link>
         </div>
+
+        {showCapacity && (
+          <BulkPlaces itemId={itemId} current={commonCapacity} onRun={run} pending={pending} />
+        )}
 
         <p className="mt-2 text-xs leading-relaxed text-zari-pale/50">
           {showCapacity
@@ -243,19 +266,73 @@ export function AdminSlots({
 function NumField({
   label, value, onSave,
 }: { label: string; value: number; onSave: (v: number) => void }) {
+  const [saved, setSaved] = useState(false);
   return (
     <label className="block">
-      <span className="block text-[0.55rem] uppercase tracking-[0.14em] text-zari/70">{label}</span>
+      <span className="block text-[0.55rem] uppercase tracking-[0.14em] text-zari/70">
+        {label}
+        {/* A field that saves on blur needs to say so, or nobody trusts it. */}
+        {saved && <span className="ml-1.5 normal-case tracking-normal text-zari">saved</span>}
+      </span>
       <input
         type="number"
         min={0}
         defaultValue={value}
         onBlur={(e) => {
           const v = Number(e.target.value);
-          if (!Number.isNaN(v) && v !== value) onSave(v);
+          if (!Number.isNaN(v) && v !== value) {
+            onSave(v);
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2000);
+          }
         }}
         className="villa-no mt-1 w-20 rounded-md border border-zari/25 bg-night px-2 py-1.5 text-center text-sm text-zari-pale focus:border-zari focus:outline-none"
       />
     </label>
+  );
+}
+
+function BulkPlaces({
+  itemId, current, onRun, pending,
+}: {
+  itemId: number;
+  current: number;
+  onRun: (fn: () => Promise<Res>) => void;
+  pending: boolean;
+}) {
+  const [value, setValue] = useState(String(current));
+
+  return (
+    <form
+      className="mt-4 flex flex-wrap items-end gap-2 rounded-lg bg-night-soft p-3 ring-1 ring-zari/20"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onRun(() => setAllSlotCapacities(itemId, Number(value)));
+      }}
+    >
+      <label className="block">
+        <span className="block text-[0.55rem] uppercase tracking-[0.14em] text-zari/70">
+          Places per session
+        </span>
+        <input
+          type="number"
+          min={0}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          className="villa-no mt-1 w-20 rounded-md border border-zari/25 bg-night px-2 py-1.5 text-center text-sm text-zari-pale focus:border-zari focus:outline-none"
+        />
+      </label>
+      <button
+        type="submit"
+        disabled={pending}
+        className="rounded-md border border-zari/30 px-3 py-2 text-xs font-semibold text-zari-pale hover:bg-zari/10 disabled:opacity-50"
+      >
+        Apply to every session
+      </button>
+      <span className="text-xs text-zari-pale/50">
+        How many villas can sit for each pooja. Reserved sessions are left alone, and you can
+        still change any single session below.
+      </span>
+    </form>
   );
 }

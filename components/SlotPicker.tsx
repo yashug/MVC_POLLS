@@ -202,16 +202,20 @@ export function SlotPicker({
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
                   {/* Whether it covers the whole meal is the committee's call, so
                       state the pledge plainly rather than guessing at "partial". */}
-                  <span className="text-leaf-soft">
-                    {mine.amountPledged != null ? (
-                      <>
-                        ₹<span className="villa-no font-semibold">{mine.amountPledged}</span>{" "}
-                        {L.partialLabel}
-                      </>
-                    ) : (
-                      L.amountTbc
-                    )}
-                  </span>
+                  {/* Only items that take money say anything about money —
+                      pooja is free and shouldn't mention amounts at all. */}
+                  {collectAmount && (
+                    <span className="text-leaf-soft">
+                      {mine.amountPledged != null ? (
+                        <>
+                          ₹<span className="villa-no font-semibold">{mine.amountPledged}</span>{" "}
+                          {L.partialLabel}
+                        </>
+                      ) : (
+                        L.amountTbc
+                      )}
+                    </span>
+                  )}
                   {collectDetails && editable && (
                     <button
                       type="button"
