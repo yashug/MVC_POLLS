@@ -128,9 +128,14 @@ A group counts as **one ticket** in a draw, however many villas are in it.
 One entry per villa per item, enforced by the database — except annadanam, where
 a villa may sponsor several sessions.
 
-Because the idol draw runs on a two-day clock, group members are added directly
-rather than having to accept first, and can leave if they'd rather not take part.
-Slower items ask for acceptance before the entry counts.
+Adding a villa to your group sends it an invitation; it only becomes part of the
+entry once that villa accepts. Anyone still undecided when registration closes is
+simply left out, and the rest of the entry goes into the draw as normal — so an
+unresponsive neighbour can't sink the entry, and nobody is committed to a
+donation they never agreed to.
+
+The draw freezes only accepted members. A pending villa never appears on the
+wheel or in a winning group.
 
 ## Status
 

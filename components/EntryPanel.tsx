@@ -16,7 +16,8 @@ export type Member = {
 export type PanelLabels = Record<
   | "enterDraw" | "yourEntry" | "withdraw" | "groupTitle" | "addVilla" | "remove"
   | "villa" | "pendingInvite" | "accept" | "decline"
-  | "leaveGroup" | "lockedNow" | "registered" | "soloOrGroup" | "addOptional",
+  | "leaveGroup" | "lockedNow" | "registered" | "soloOrGroup" | "addOptional"
+  | "pendingNote",
   string
 >;
 
@@ -137,6 +138,13 @@ export function EntryPanel({
             </li>
           ))}
         </ul>
+
+        {/* The lead needs to know an unanswered invitation simply drops out. */}
+        {entry.members.some((m) => m.acceptance === "pending") && (
+          <p className="mt-3 rounded-md bg-turmeric/15 px-3 py-2.5 text-xs leading-relaxed text-leaf">
+            {L.pendingNote}
+          </p>
+        )}
 
         {editable && isLead && maxGroupSize > 1 && roomLeft > 0 && (
           <p className="mt-4 text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-leaf-faint">

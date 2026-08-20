@@ -46,6 +46,7 @@ const dict = {
   groupTitle:     { en: "Your group", te: "మీ గ్రూప్" },
   addVilla:       { en: "Add a villa", te: "విల్లా చేర్చండి" },
   remove:         { en: "Remove", te: "తొలగించు" },
+  pendingNote:    { en: "A villa is only part of your entry once it accepts. Anyone still waiting when registration closes is left out, and the rest of the entry still goes into the draw.", te: "ఒక విల్లా అంగీకరించిన తర్వాతే మీ నమోదులో భాగం అవుతుంది. నమోదు ముగిసే సమయానికి అంగీకరించని వారు మినహాయించబడతారు, మిగిలిన నమోదు డ్రాలో ఉంటుంది." },
   soloOrGroup:    { en: "You can enter on your own, or together with other villas. Either way it counts as one ticket in the draw.", te: "మీరు ఒక్కరుగా చేరవచ్చు, లేదా ఇతర విల్లాలతో కలిసి చేరవచ్చు. రెండూ డ్రాలో ఒకే టికెట్‌గా లెక్కిస్తారు." },
   addOptional:    { en: "Sharing with other villas? Optional", te: "ఇతర విల్లాలతో కలిసి చేయాలా? ఐచ్ఛికం" },
   editUntil:      { en: "You can change this until", te: "దీన్ని మార్చుకోవచ్చు" },

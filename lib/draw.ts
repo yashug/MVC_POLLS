@@ -46,11 +46,14 @@ export async function prepareDraw(itemId: number, method: "app_wheel" | "physica
 
   if (eligible.length === 0) throw new Error("No eligible entries to draw from.");
 
-  const entrants: Entrant[] = eligible.map((e) => ({
-    entryId: e.id,
-    villaNos: e.members.map((m) => m.villaNo),
-    label: e.members.map((m) => m.villaNo).join(" + "),
-  }));
+  // A villa that never answered the invitation is not part of the entry. The
+  // lead always counts, so an entry never empties out — it just enters smaller.
+  const entrants: Entrant[] = eligible.map((e) => {
+    const accepted = e.members.filter((m) => m.acceptance === "accepted");
+    const villaNos = (accepted.length > 0 ? accepted : e.members.filter((m) => m.role === "lead"))
+      .map((m) => m.villaNo);
+    return { entryId: e.id, villaNos, label: villaNos.join(" + ") };
+  });
 
   const seed = randomBytes(16).toString("hex");
   const snapshot = JSON.stringify(entrants);

@@ -56,7 +56,7 @@ async function main() {
           "విగ్రహ విరాళం గెలుపొందినవారికి పట్టు వస్త్రాలు సమర్పించే అవకాశం కూడా ఉంటుంది. ఇది తప్పనిసరి కాదు — వారు ఇష్టపడకపోతే కమిటీ ఏర్పాటు చేస్తుంది. పట్టు వస్త్రాలు విడిగా, ఆఫ్‌లైన్‌లో వేలం వేయబడతాయి.",
         maxGroupSize: 4,
         maxEntriesPerVilla: 1,
-        requiresAcceptance: false, // group members are added directly — nobody gets locked out before Aug 22
+        requiresAcceptance: true,
         winnerCount: 1,
         opensAt: ist(2026, 8, 20, 0, 1),
         closesAt: ist(2026, 8, 22, 16, 0),
