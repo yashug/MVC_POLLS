@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Karla, Noto_Sans_Telugu, Space_Mono } from "next/font/google";
+import { AmbientAudio } from "@/components/AmbientAudio";
 import { getLang } from "@/lib/i18n";
 import "./globals.css";
 
@@ -36,7 +37,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       lang={lang}
       className={`${fraunces.variable} ${karla.variable} ${notoTelugu.variable} ${spaceMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        {/* Lives in the root layout so the drone survives navigation. */}
+        <AmbientAudio />
+      </body>
     </html>
   );
 }

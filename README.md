@@ -153,6 +153,29 @@ report at `/admin/report`.
 **Still to come**: shareable result cards for the WhatsApp group, deadline
 reminders, and cloning the event for 2027.
 
+## The idol photo
+
+The home page opens with a shrine arch. Drop a photo of the community's own idol
+at `public/idol.jpg` (`.png` and `.webp` also work) and it appears inside the
+arch automatically — no code change. Until then the arch holds the sacred
+syllable. A photo of the real idol will always look better than a drawing, so
+add one once the idol is chosen.
+
+## Music
+
+The landing page plays an ambient tanpura drone with an occasional temple bell.
+It is synthesised in the browser with the Web Audio API rather than streamed, so
+there is no audio file to load, nothing to license, and it works offline.
+
+It is on by default, but browsers refuse to start audio until someone actually
+interacts with the page — so it begins at the first tap, which on the login
+screen is the villa field. One tap on the control mutes it, and that choice is
+remembered.
+
+To use a real recording instead, replace the synthesis in
+`components/AmbientAudio.tsx` with an `<audio>` element pointing at a file in
+`public/` — and make sure you have the right to use it.
+
 ## Design
 
 Palette and border motif come from Telangana handloom silk — Gadwal and

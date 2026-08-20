@@ -43,7 +43,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-6">{children}</main>
+      {/* Bottom padding clears the floating music control. */}
+      <main className="mx-auto w-full max-w-2xl flex-1 px-5 pb-20 pt-6">{children}</main>
 
       <footer className="mt-10">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-5 py-4 text-[0.7rem] text-leaf-faint">

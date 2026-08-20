@@ -53,6 +53,9 @@ export function LoginForm({ labels: L }: { labels: LoginLabels }) {
               <label htmlFor="villaNo" className="block text-xs uppercase tracking-[0.18em] text-leaf-soft">
                 {L.villaNumber}
               </label>
+              {/* A gate nameplate. It is autofocused, so the focus treatment is
+                  part of the resting look and has to be deliberate rather than
+                  the default outline wrapping a very tall box. */}
               <input
                 id="villaNo"
                 name="villaNo"
@@ -62,7 +65,7 @@ export function LoginForm({ labels: L }: { labels: LoginLabels }) {
                 autoFocus
                 required
                 placeholder="000"
-                className="villa-no mt-3 w-full bg-transparent text-center text-6xl font-bold text-leaf placeholder:text-leaf-faint/40 border-b-2 border-zari/40 pb-2 focus:border-kumkum focus:outline-none"
+                className="villa-no mt-3 w-full rounded-lg border border-zari/45 bg-toran/70 py-2.5 text-center text-5xl font-bold tracking-[0.06em] text-leaf placeholder:text-leaf-faint/35 focus-visible:border-zari focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zari/50"
               />
               <p className="mt-3 text-center text-xs text-leaf-faint">1 – 247</p>
               <Submit pending={pending}>{L.continueBtn}</Submit>

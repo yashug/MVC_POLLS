@@ -3,6 +3,7 @@ import { ZariBand } from "@/components/ZariBand";
 import { fmtDateTime } from "@/lib/ist";
 import { getT, pick } from "@/lib/i18n";
 import { InviteBanner } from "@/components/InviteBanner";
+import { Shrine } from "@/components/Shrine";
 import { getLatestDraw } from "@/lib/draw";
 import {
   countEntries, getActiveEvent, getItems, getPendingInvites, getVillaEntry, itemState,
@@ -50,7 +51,9 @@ export default async function Home() {
 
   return (
     <>
-      <h1 className="font-[family-name:var(--font-display)] text-2xl leading-tight text-leaf">
+      <Shrine lang={lang} />
+
+      <h1 className="mt-7 font-[family-name:var(--font-display)] text-2xl leading-tight text-leaf">
         {lang === "te" ? "మీరు ఏమి చేయాలనుకుంటున్నారు?" : "What would you like to take part in?"}
       </h1>
       <p className="mt-1.5 text-sm leading-relaxed text-leaf-soft">

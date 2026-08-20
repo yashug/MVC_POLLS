@@ -17,6 +17,8 @@
   --color-turmeric: #e9b44c;
   --color-clay: #b5673f;
   --color-night: #10160f;
+  --color-dusk: #0c1310;
+  --color-ember: #2a1a0e;
   --color-night-soft: #1b241a;
 
   --font-display: var(--font-fraunces), Georgia, serif;
@@ -47,11 +49,19 @@ body {
   letter-spacing: -0.03em;
 }
 
-/* Keyboard users get a real, visible ring everywhere. */
-:where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-kumkum);
-  outline-offset: 2px;
-  border-radius: 3px;
+/* Keyboard users get a real, visible ring everywhere.
+   Lives in @layer base so a component can still opt out with outline-none —
+   otherwise this sits after Tailwind's utilities and silently wins. */
+@layer base {
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--color-kumkum);
+    outline-offset: 2px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -64,3 +74,24 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Landing page: the doorway ─────────────────────────────────────────
+   One orchestrated arrival — the toranam is hung, then the words and the
+   panel settle under it. Nothing loops afterwards. */
+@keyframes toranam-hang {
+  0% { transform: translateY(-100%); }
+  72% { transform: translateY(5px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+.toranam {
+  animation: toranam-hang 1.15s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+
+.rise-1 { animation: rise 0.7s ease-out 0.5s both; }
+.rise-2 { animation: rise 0.7s ease-out 0.72s both; }
