@@ -32,9 +32,14 @@ export default async function ResidentDrawPage({
         entrants: t("entrants"),
         winner: t("winner"),
         runnersUp: t("runnersUp"),
-        verifyNote: t("verifyNote"),
         waiting: t("notLiveYet"),
         getReady: t("getReady"),
+        howChosen: t("howChosen"),
+        howChosenBody: t("howChosenBody"),
+        referenceCodes: t("referenceCodes"),
+        referenceNote: t("referenceNote"),
+        entryListCode: t("entryListCode"),
+        drawSeedCode: t("drawSeedCode"),
         lang,
       }}
       back={{ href: "/", label: t("back") }}

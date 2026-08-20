@@ -24,9 +24,14 @@ export function LiveDraw({
     entrants: string;
     winner: string;
     runnersUp: string;
-    verifyNote: string;
     waiting: string;
     getReady: string;
+    howChosen: string;
+    howChosenBody: string;
+    referenceCodes: string;
+    referenceNote: string;
+    entryListCode: string;
+    drawSeedCode: string;
     lang: string;
   };
   /** Way out of the watch screen. Omitted where the surrounding page has its own. */
@@ -95,7 +100,7 @@ export function LiveDraw({
   return (
     <div className="min-h-dvh bg-night text-zari-pale">
       <ZariBand height={10} tone="night" />
-      <div className="mx-auto max-w-2xl px-5 py-7">
+      <div className="mx-auto max-w-2xl px-5 pb-24 pt-7">
         {back && (
           <Link
             href={back.href}
@@ -184,24 +189,31 @@ export function LiveDraw({
 
         {state.entrantHash && (
           <details className="mt-9 rounded-lg bg-night-soft/50 p-4 text-xs ring-1 ring-zari/15">
-            <summary className="cursor-pointer text-zari/80">
-              {labels.lang === "te" ? "ధృవీకరణ" : "Verification"}
-            </summary>
-            <p className="mt-2 leading-relaxed text-zari-pale/60">{labels.verifyNote}</p>
-            <dl className="mt-3 space-y-2">
-              <div>
-                <dt className="text-zari/70">Entrant checksum (SHA-256)</dt>
-                <dd className="villa-no break-all text-[0.68rem] text-zari-pale/80">
-                  {state.entrantHash}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-zari/70">Seed</dt>
-                <dd className="villa-no break-all text-[0.68rem] text-zari-pale/80">
-                  {state.seed ?? "— revealed when the wheel stops —"}
-                </dd>
-              </div>
-            </dl>
+            <summary className="cursor-pointer text-zari/80">{labels.howChosen}</summary>
+
+            <p className="mt-2 leading-relaxed text-zari-pale/70">{labels.howChosenBody}</p>
+
+            {/* Demoted on purpose: nobody watching a draw needs to read a hash. */}
+            <div className="mt-3 rounded-md bg-night/60 px-3 py-2.5">
+              <p className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-zari/70">
+                {labels.referenceCodes}
+              </p>
+              <p className="mt-1 leading-relaxed text-zari-pale/45">{labels.referenceNote}</p>
+              <dl className="mt-2 space-y-1.5">
+                <div>
+                  <dt className="text-[0.62rem] text-zari/60">{labels.entryListCode}</dt>
+                  <dd className="villa-no break-all text-[0.62rem] text-zari-pale/70">
+                    {state.entrantHash}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[0.62rem] text-zari/60">{labels.drawSeedCode}</dt>
+                  <dd className="villa-no break-all text-[0.62rem] text-zari-pale/70">
+                    {state.seed ?? "—"}
+                  </dd>
+                </div>
+              </dl>
+            </div>
           </details>
         )}
 

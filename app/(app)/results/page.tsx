@@ -106,20 +106,38 @@ export default async function ResultsPage() {
                 )}
 
                 <details className="mt-4 border-t border-leaf/10 pt-3 text-xs">
-                  <summary className="cursor-pointer text-leaf-soft">
-                    {lang === "te" ? "ఇది ఎలా నిర్ణయించబడింది" : "How this was decided"}
-                  </summary>
-                  <p className="mt-2 leading-relaxed text-leaf-faint">{t("verifyNote")}</p>
-                  <p className="mt-2 text-leaf-faint">
-                    <span className="villa-no">{detail.entrants.length}</span> {t("entrants")} ·{" "}
-                    {draw.ranAt ? fmtDateTime(draw.ranAt) : ""}
+                  <summary className="cursor-pointer text-leaf-soft">{t("howChosen")}</summary>
+
+                  <p className="mt-2 leading-relaxed text-leaf-soft">{t("howChosenBody")}</p>
+
+                  <p className="mt-2.5 text-leaf">
+                    <span className="villa-no font-semibold">{detail.entrants.length}</span>{" "}
+                    {t("entriesInDraw")}
+                    {draw.ranAt && ` · ${t("drawnOn")} ${fmtDateTime(draw.ranAt)}`}
                   </p>
-                  <p className="villa-no mt-1.5 break-all text-[0.65rem] text-leaf-faint">
-                    {draw.entrantHash}
-                  </p>
-                  <p className="villa-no mt-1 break-all text-[0.65rem] text-leaf-faint">
-                    seed {draw.seed}
-                  </p>
+
+                  {/* Kept for auditability, but demoted — no resident needs to read a
+                      hash, and presenting one as if they should just erodes trust. */}
+                  <div className="mt-3 rounded-md bg-leaf/[0.04] px-3 py-2.5">
+                    <p className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-leaf-faint">
+                      {t("referenceCodes")}
+                    </p>
+                    <p className="mt-1 leading-relaxed text-leaf-faint">{t("referenceNote")}</p>
+                    <dl className="mt-2 space-y-1.5">
+                      <div>
+                        <dt className="text-[0.62rem] text-leaf-faint">{t("entryListCode")}</dt>
+                        <dd className="villa-no break-all text-[0.62rem] text-leaf-faint/80">
+                          {draw.entrantHash}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-[0.62rem] text-leaf-faint">{t("drawSeedCode")}</dt>
+                        <dd className="villa-no break-all text-[0.62rem] text-leaf-faint/80">
+                          {draw.seed}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
                 </details>
               </div>
             </li>

@@ -30,10 +30,16 @@ export default async function AdminDrawPage({ params }: { params: Promise<{ slug
         entrants: "entrants",
         winner: "Winner",
         runnersUp: "Runners-up, in order",
-        verifyNote:
-          "The entrant list was sealed and the seed committed before the wheel moved. Anyone can recompute the same order from these two values.",
         waiting: "Not live yet.",
         getReady: "Starting in",
+        howChosen: "How the winner was chosen",
+        // The committee gets the precise version; residents get plain language.
+        howChosenBody:
+          "The entrant list was sealed and the seed committed before the wheel moved. The same order can be recomputed from these two values at any time.",
+        referenceCodes: "Reference codes",
+        referenceNote: "Keep these with the minutes so the draw can be checked again later.",
+        entryListCode: "Entry list checksum (SHA-256)",
+        drawSeedCode: "Draw seed",
         lang: "en",
       }}
       controls={
