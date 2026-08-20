@@ -15,9 +15,8 @@ export type Member = {
 
 export type PanelLabels = Record<
   | "enterDraw" | "yourEntry" | "withdraw" | "groupTitle" | "addVilla" | "remove"
-  | "soloEntry" | "groupNote" | "villa" | "pendingInvite" | "accept" | "decline"
-  | "leaveGroup" | "lockedNow" | "registered" | "soloOrGroup" | "soloEntered"
-  | "addOptional",
+  | "villa" | "pendingInvite" | "accept" | "decline"
+  | "leaveGroup" | "lockedNow" | "registered" | "soloOrGroup" | "addOptional",
   string
 >;
 
@@ -49,6 +48,7 @@ export function EntryPanel({
       <div className="rounded-lg bg-paper p-5 ring-1 ring-leaf/10">
         {editable ? (
           <>
+            {maxGroupSize > 1 && <SoloOrGroup text={L.soloOrGroup} />}
             <button
               type="button"
               disabled={pending}
@@ -57,11 +57,6 @@ export function EntryPanel({
             >
               {pending ? "…" : L.enterDraw}
             </button>
-            {maxGroupSize > 1 && (
-              <p className="mt-3 text-center text-xs leading-relaxed text-leaf-soft">
-                {L.soloOrGroup}
-              </p>
-            )}
           </>
         ) : (
           <p className="text-center text-sm text-leaf-soft">{L.lockedNow}</p>
@@ -86,6 +81,8 @@ export function EntryPanel({
       </div>
 
       <div className="p-5">
+        {maxGroupSize > 1 && <SoloOrGroup text={L.soloOrGroup} />}
+
         {isPendingInvite && (
           <div className="mb-4 rounded-md bg-turmeric/15 px-3 py-3">
             <p className="text-sm text-leaf">
@@ -141,12 +138,6 @@ export function EntryPanel({
           ))}
         </ul>
 
-        {entry.members.length === 1 && maxGroupSize > 1 && (
-          <p className="mt-3 rounded-md bg-leaf/[0.06] px-3 py-2.5 text-xs leading-relaxed text-leaf">
-            ✓ {L.soloEntered}
-          </p>
-        )}
-
         {editable && isLead && maxGroupSize > 1 && roomLeft > 0 && (
           <p className="mt-4 text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-leaf-faint">
             {L.addOptional}
@@ -182,10 +173,6 @@ export function EntryPanel({
           </form>
         )}
 
-        {entry.members.length > 1 && (
-          <p className="mt-3 text-xs leading-relaxed text-leaf-faint">{L.groupNote}</p>
-        )}
-
         {editable && isLead && (
           <button
             type="button" disabled={pending}
@@ -200,6 +187,15 @@ export function EntryPanel({
         <Err error={error} />
       </div>
     </div>
+  );
+}
+
+/** The rule for this item, stated once at the top and never contradicted below. */
+function SoloOrGroup({ text }: { text: string }) {
+  return (
+    <p className="mb-4 rounded-md bg-zari-pale/50 px-3.5 py-3 text-xs leading-relaxed text-leaf">
+      {text}
+    </p>
   );
 }
 

@@ -167,11 +167,11 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
           labels={{
             enterDraw: isDraw ? t("enterDraw") : t("signUp"),
             yourEntry: t("yourEntry"), withdraw: t("withdraw"), groupTitle: t("groupTitle"),
-            addVilla: t("addVilla"), remove: t("remove"), soloEntry: t("soloEntry"),
-            groupNote: t("groupNote"), villa: t("villa"), pendingInvite: t("pendingInvite"),
+            addVilla: t("addVilla"), remove: t("remove"),
+            villa: t("villa"), pendingInvite: t("pendingInvite"),
             accept: t("accept"), decline: t("decline"), leaveGroup: t("leaveGroup"),
             lockedNow: t("lockedNow"), registered: t("registered"),
-            soloOrGroup: t("soloOrGroup"), soloEntered: t("soloEntered"),
+            soloOrGroup: t("soloOrGroup"),
             addOptional: t("addOptional"),
           }}
         />
