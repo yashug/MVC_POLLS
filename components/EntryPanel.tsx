@@ -16,7 +16,8 @@ export type Member = {
 export type PanelLabels = Record<
   | "enterDraw" | "yourEntry" | "withdraw" | "groupTitle" | "addVilla" | "remove"
   | "soloEntry" | "groupNote" | "villa" | "pendingInvite" | "accept" | "decline"
-  | "leaveGroup" | "lockedNow" | "registered",
+  | "leaveGroup" | "lockedNow" | "registered" | "soloOrGroup" | "soloEntered"
+  | "addOptional",
   string
 >;
 
@@ -57,7 +58,9 @@ export function EntryPanel({
               {pending ? "…" : L.enterDraw}
             </button>
             {maxGroupSize > 1 && (
-              <p className="mt-3 text-center text-xs leading-relaxed text-leaf-faint">{L.groupNote}</p>
+              <p className="mt-3 text-center text-xs leading-relaxed text-leaf-soft">
+                {L.soloOrGroup}
+              </p>
             )}
           </>
         ) : (
@@ -77,7 +80,7 @@ export function EntryPanel({
     <div className="overflow-hidden rounded-lg bg-paper ring-1 ring-leaf/10">
       <div className="flex items-center gap-2 border-b border-leaf/10 bg-leaf/[0.04] px-5 py-2.5">
         <span className="text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-leaf-soft">
-          {maxGroupSize > 1 ? L.groupTitle : L.yourEntry}
+          {entry.members.length > 1 ? L.groupTitle : L.yourEntry}
         </span>
         <span className="ml-auto text-[0.7rem] font-semibold text-leaf">✓ {L.registered}</span>
       </div>
@@ -138,9 +141,21 @@ export function EntryPanel({
           ))}
         </ul>
 
+        {entry.members.length === 1 && maxGroupSize > 1 && (
+          <p className="mt-3 rounded-md bg-leaf/[0.06] px-3 py-2.5 text-xs leading-relaxed text-leaf">
+            ✓ {L.soloEntered}
+          </p>
+        )}
+
+        {editable && isLead && maxGroupSize > 1 && roomLeft > 0 && (
+          <p className="mt-4 text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-leaf-faint">
+            {L.addOptional}
+          </p>
+        )}
+
         {editable && isLead && maxGroupSize > 1 && roomLeft > 0 && (
           <form
-            className="mt-4 flex gap-2"
+            className="mt-1.5 flex gap-2"
             onSubmit={(e) => {
               e.preventDefault();
               run(() => addMember(entry.id, villaInput));
@@ -167,7 +182,7 @@ export function EntryPanel({
           </form>
         )}
 
-        {maxGroupSize > 1 && (
+        {entry.members.length > 1 && (
           <p className="mt-3 text-xs leading-relaxed text-leaf-faint">{L.groupNote}</p>
         )}
 

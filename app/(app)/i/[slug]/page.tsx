@@ -171,6 +171,8 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
             groupNote: t("groupNote"), villa: t("villa"), pendingInvite: t("pendingInvite"),
             accept: t("accept"), decline: t("decline"), leaveGroup: t("leaveGroup"),
             lockedNow: t("lockedNow"), registered: t("registered"),
+            soloOrGroup: t("soloOrGroup"), soloEntered: t("soloEntered"),
+            addOptional: t("addOptional"),
           }}
         />
         )}
