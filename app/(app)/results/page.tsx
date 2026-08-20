@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PattuChoice } from "@/components/PattuChoice";
+import { PattuDuty } from "@/components/PattuDuty";
 import { ZariBand } from "@/components/ZariBand";
 import { db } from "@/db";
 import { pattuVastralu } from "@/db/schema";
@@ -81,9 +81,9 @@ export default async function ResultsPage() {
                 )}
 
                 {iWon && item.slug === "idol-donation" && (
-                  <PattuChoice
+                  <PattuDuty
                     drawResultId={winner.id}
-                    opted={pattu?.opted ?? null}
+                    acknowledged={pattu?.opted === true}
                     note={pick(item, "auctionNote", lang)}
                     lang={lang}
                   />

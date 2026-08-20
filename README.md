@@ -16,11 +16,17 @@ npm run dev            # http://localhost:3000
 it holds an open handle to the database file. Reset is always local: it ignores
 any Turso credentials in the environment, so it cannot reach a hosted database.
 
-`db:migrate` and `db:seed` do follow those credentials, and both print which
-database they are about to touch. Watch that line — `tsx` auto-loads `.env`, so
-credentials sitting in that file silently redirect every command to the remote
-database. Seeding a database that already holds an event is refused rather than
-duplicated; pass `FORCE_RESEED=1` to wipe and start over.
+`db:migrate`, `db:seed` and `db:refresh-content` do follow those credentials.
+They read `.env` then `.env.local`, the same order `next dev` uses, so the CLI and
+the running app always agree on which database they mean. Each prints its target
+before doing anything — watch that line.
+
+Seeding a database that already holds an event is refused rather than duplicated;
+pass `FORCE_RESEED=1` to wipe and start over.
+
+To change resident-facing wording on a database that already has registrations,
+edit `db/content.ts` and run `npm run db:refresh-content`. It rewrites titles,
+blurbs and notes only, and never touches accounts, entries or draws.
 
 ### Environment
 

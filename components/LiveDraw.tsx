@@ -1,6 +1,7 @@
 "use client";
 
 import confetti from "canvas-confetti";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Wheel } from "@/components/Wheel";
 import { ZariBand } from "@/components/ZariBand";
@@ -14,6 +15,7 @@ export function LiveDraw({
   slug,
   initial,
   labels,
+  back,
   controls,
 }: {
   slug: string;
@@ -27,6 +29,8 @@ export function LiveDraw({
     getReady: string;
     lang: string;
   };
+  /** Way out of the watch screen. Omitted where the surrounding page has its own. */
+  back?: { href: string; label: string };
   /** Committee-only buttons, rendered underneath. */
   controls?: React.ReactNode;
 }) {
@@ -92,7 +96,16 @@ export function LiveDraw({
     <div className="min-h-dvh bg-night text-zari-pale">
       <ZariBand height={10} tone="night" />
       <div className="mx-auto max-w-2xl px-5 py-7">
-        <header className="text-center">
+        {back && (
+          <Link
+            href={back.href}
+            className="inline-block text-xs text-zari/70 underline underline-offset-4 hover:text-zari"
+          >
+            ← {back.label}
+          </Link>
+        )}
+
+        <header className={`${back ? "mt-4" : ""} text-center`}>
           <p className="text-[0.65rem] uppercase tracking-[0.3em] text-zari">
             {labels.lang === "te" ? "లక్కీ డ్రా" : "Lucky draw"}
           </p>
@@ -190,6 +203,15 @@ export function LiveDraw({
               </div>
             </dl>
           </details>
+        )}
+
+        {back && settled && (
+          <Link
+            href={back.href}
+            className="mt-7 block rounded-md border border-zari/40 py-3.5 text-center text-sm font-semibold uppercase tracking-[0.14em] text-zari transition-colors hover:border-zari hover:bg-zari/10"
+          >
+            ← {back.label}
+          </Link>
         )}
       </div>
       <ZariBand height={10} tone="night" />

@@ -8,9 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx --env-file-if-exists=.env.local db/migrate.ts",
-    "db:seed": "tsx --env-file-if-exists=.env.local db/seed.ts",
-    "db:reset": "rm -f data/mvc-polls.db* && LOCAL_ONLY=1 npm run db:migrate && LOCAL_ONLY=1 npm run db:seed"
+    "db:migrate": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local db/migrate.ts",
+    "db:seed": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local db/seed.ts",
+    "db:reset": "rm -f data/mvc-polls.db* && LOCAL_ONLY=1 npm run db:migrate && LOCAL_ONLY=1 npm run db:seed",
+    "db:refresh-content": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local db/refresh-content.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",

@@ -6,6 +6,7 @@ import {
   villaAccounts, villas,
 } from "./schema";
 import { ist } from "../lib/ist";
+import { ITEM_COPY, RESERVED_SESSION } from "./content";
 import { describeTarget } from "../lib/db-target";
 
 const VILLA_COUNT = 247;
@@ -90,16 +91,7 @@ async function main() {
         eventId: event.id,
         slug: "idol-donation",
         kind: "lucky_dip",
-        titleEn: "Ganesh idol donation",
-        titleTe: "గణేష్ విగ్రహ విరాళం",
-        blurbEn:
-          "Sponsor the Ganesh idol for Venice City — POP, 6 ft or under. Enter on your own, or as a group of up to 4 villas.",
-        blurbTe:
-          "వేనిస్ సిటీ గణేష్ విగ్రహాన్ని సమర్పించండి — POP, 6 అడుగుల లోపు. ఒక్కరుగా లేదా 4 విల్లాల వరకు గ్రూప్‌గా పాల్గొనవచ్చు.",
-        auctionNoteEn:
-          "The winner of the idol donation will also have the option to donate pattu vastralu. This is not mandatory — if the winner chooses not to, the committee will arrange it. Pattu vastralu is auctioned separately, offline.",
-        auctionNoteTe:
-          "విగ్రహ విరాళం గెలుపొందినవారికి పట్టు వస్త్రాలు సమర్పించే అవకాశం కూడా ఉంటుంది. ఇది తప్పనిసరి కాదు — వారు ఇష్టపడకపోతే కమిటీ ఏర్పాటు చేస్తుంది. పట్టు వస్త్రాలు విడిగా, ఆఫ్‌లైన్‌లో వేలం వేయబడతాయి.",
+        ...ITEM_COPY["idol-donation"],
         maxGroupSize: 4,
         maxEntriesPerVilla: 1,
         requiresAcceptance: true,
@@ -114,12 +106,7 @@ async function main() {
         eventId: event.id,
         slug: "pooja-slots",
         kind: "opt_in",
-        titleEn: "Daily pooja",
-        titleTe: "నిత్య పూజ",
-        blurbEn:
-          "Sit for pooja during the festival. Morning pooja is at 9:00 AM and evening pooja at 6:00 PM. Pick one session — if more villas want a session than it holds, that session goes to a draw.",
-        blurbTe:
-          "ఉత్సవంలో పూజకు కూర్చోండి. ఉదయం పూజ 9:00కి, సాయంత్రం పూజ 6:00కి. ఒక సమయాన్ని ఎంచుకోండి — ఒక సమయానికి ఎక్కువ విల్లాలు కోరితే, ఆ సమయానికి లక్కీ డిప్ నిర్వహిస్తాం.",
+        ...ITEM_COPY["pooja-slots"],
         maxGroupSize: 1,
         maxEntriesPerVilla: 1,
         collectsSlot: true,
@@ -133,14 +120,7 @@ async function main() {
         eventId: event.id,
         slug: "laddu-9kg",
         kind: "lucky_dip",
-        titleEn: "9 kg laddu donation",
-        titleTe: "9 కిలోల లడ్డూ విరాళం",
-        blurbEn: "Sponsor the 9 kg laddu. Enter on your own or with one other villa.",
-        blurbTe: "9 కిలోల లడ్డూను సమర్పించండి. ఒక్కరుగా లేదా మరో విల్లాతో కలిసి పాల్గొనవచ్చు.",
-        auctionNoteEn:
-          "The 9 kg laddu is auctioned on Nimajjanam day, 19 September. The auction is held in person, not in this app.",
-        auctionNoteTe:
-          "9 కిలోల లడ్డూ నిమజ్జనం రోజు, సెప్టెంబర్ 19న వేలం వేయబడుతుంది. వేలం ప్రత్యక్షంగా జరుగుతుంది, ఈ యాప్‌లో కాదు.",
+        ...ITEM_COPY["laddu-9kg"],
         maxGroupSize: 2,
         maxEntriesPerVilla: 1,
         requiresAcceptance: true,
@@ -155,12 +135,7 @@ async function main() {
         eventId: event.id,
         slug: "laddu-2kg",
         kind: "lucky_dip",
-        titleEn: "2 kg laddu draw",
-        titleTe: "2 కిలోల లడ్డూ లక్కీ డిప్",
-        blurbEn:
-          "The association sponsors a 2 kg laddu and one villa takes it home. ₹50 token per villa, collected by the committee. Token amounts are not refunded.",
-        blurbTe:
-          "అసోసియేషన్ 2 కిలోల లడ్డూను స్పాన్సర్ చేస్తుంది, ఒక విల్లాకు అందుతుంది. విల్లాకు ₹50 టోకెన్, కమిటీ వసూలు చేస్తుంది. టోకెన్ మొత్తం తిరిగి ఇవ్వబడదు.",
+        ...ITEM_COPY["laddu-2kg"],
         maxGroupSize: 1,
         maxEntriesPerVilla: 1,
         entryFee: 50,
@@ -176,12 +151,7 @@ async function main() {
         eventId: event.id,
         slug: "annadanam",
         kind: "opt_in",
-        titleEn: "Annadanam sponsorship",
-        titleTe: "అన్నదాన స్పాన్సర్‌షిప్",
-        blurbEn:
-          "Sponsor a meal during the festival, in full or in part. The committee covers the rest and decides the menu.",
-        blurbTe:
-          "ఉత్సవంలో ఒక భోజనాన్ని పూర్తిగా లేదా పాక్షికంగా స్పాన్సర్ చేయండి. మిగిలినది కమిటీ భరిస్తుంది, మెనూ కమిటీ నిర్ణయిస్తుంది.",
+        ...ITEM_COPY["annadanam"],
         maxGroupSize: 99, // no limit on co-sponsors
         maxEntriesPerVilla: null, // a villa may sponsor several sessions
         collectsSlot: true,
@@ -199,8 +169,8 @@ async function main() {
   const poojaSlots: (typeof slots.$inferInsert)[] = [
     {
       itemId: pooja.id, date: "2026-09-14", period: "evening", capacity: 0, isLocked: true,
-      lockNoteEn: "Reserved for the idol donors",
-      lockNoteTe: "విగ్రహ దాతల కోసం కేటాయించబడింది",
+      lockNoteEn: RESERVED_SESSION.lockNoteEn,
+      lockNoteTe: RESERVED_SESSION.lockNoteTe,
       sortOrder: 0,
     },
   ];

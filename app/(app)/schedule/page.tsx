@@ -162,6 +162,13 @@ export default async function SchedulePage() {
             ))}
           </ul>
 
+          {/* These are not bookable here, and saying so stops people looking for a form. */}
+          <p className="mt-3 text-xs leading-relaxed text-leaf-faint">
+            {lang === "te"
+              ? "సాంస్కృతిక కార్యక్రమాల నమోదు ఈ యాప్‌లో కాదు — వాట్సాప్ గ్రూప్‌లో జరుగుతుంది."
+              : "Cultural programmes are not booked here — sign up in the community WhatsApp group."}
+          </p>
+
           <p className="mt-4 border-t border-leaf/10 pt-3 text-sm leading-relaxed text-leaf">
             <b>{lang === "te" ? "నిమజ్జనం" : "Nimajjanam"}</b>{" "}
             {lang === "te"

@@ -37,6 +37,7 @@ export default async function ResidentDrawPage({
         getReady: t("getReady"),
         lang,
       }}
+      back={{ href: "/", label: t("back") }}
     />
   );
 }

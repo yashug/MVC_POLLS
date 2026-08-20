@@ -9,8 +9,13 @@ import { requireVilla } from "@/lib/session";
 
 export type Res = { ok: true } | { ok: false; error: string };
 
-/** The idol winner's optional pattu vastralu offer. Never mandatory. */
-export async function setPattuChoice(drawResultId: number, opted: boolean): Promise<Res> {
+/**
+ * The idol donor confirms they have seen what is expected of them: the pattu
+ * vastralu and the gaja mala. There is no decline — the committee agreed this is
+ * the donor's responsibility, so this records that they know, not whether they
+ * agree. Anyone who genuinely cannot takes it up with the committee directly.
+ */
+export async function acknowledgePattuDuty(drawResultId: number): Promise<Res> {
   const { villaId, villaNo } = await requireVilla();
 
   const result = await db.query.drawResults.findFirst({
@@ -21,7 +26,7 @@ export async function setPattuChoice(drawResultId: number, opted: boolean): Prom
   const member = await db.query.entryMembers.findFirst({
     where: and(eq(entryMembers.entryId, result.entryId), eq(entryMembers.villaId, villaId)),
   });
-  if (!member) return { ok: false, error: "Only the winning villas can answer this." };
+  if (!member) return { ok: false, error: "Only the winning villas can confirm this." };
 
   const existing = await db.query.pattuVastralu.findFirst({
     where: eq(pattuVastralu.drawResultId, drawResultId),
@@ -29,15 +34,20 @@ export async function setPattuChoice(drawResultId: number, opted: boolean): Prom
   if (existing) {
     await db
       .update(pattuVastralu)
-      .set({ opted, respondedAt: new Date() })
+      .set({ opted: true, respondedAt: new Date(), note: `villa ${villaNo}` })
       .where(eq(pattuVastralu.id, existing.id));
   } else {
-    await db.insert(pattuVastralu).values({ drawResultId, opted, respondedAt: new Date() });
+    await db.insert(pattuVastralu).values({
+      drawResultId,
+      opted: true,
+      respondedAt: new Date(),
+      note: `villa ${villaNo}`,
+    });
   }
 
   await audit({
-    actorType: "villa", actorId: villaNo, action: "pattu_vastralu.choice",
-    entity: "draw_result", entityId: drawResultId, after: { opted },
+    actorType: "villa", actorId: villaNo, action: "pattu_vastralu.acknowledged",
+    entity: "draw_result", entityId: drawResultId,
   });
   revalidatePath("/results");
   return { ok: true };
