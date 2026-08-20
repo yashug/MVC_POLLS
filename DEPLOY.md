@@ -161,6 +161,14 @@ Worth running the evening before each draw.
 
 # Moving the database to Mumbai
 
+> **Not done, on purpose.** Decided on 20 August 2026, before the idol draw. The
+> query changes took the resident pages from ~15 database round trips to about
+> six, and `/login` from 300ms to ~100ms, which was enough. What is left is
+> roughly 700ms of Mumbai-to-Tokyo distance on the heaviest page — real, but not
+> worth a dump and restore with registrations already live and a deadline two
+> days out. Revisit if the app feels slow under real load, or when the event is
+> cloned for 2027 and the database is empty anyway.
+
 The app runs in `bom1` (Mumbai) — that is what `vercel.json` pins. The database
 still answers from `aws-ap-northeast-1` (Tokyo), which is **~130ms per query**
 from Mumbai against ~10ms for a database in the same city. The home page makes
