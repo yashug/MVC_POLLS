@@ -4,7 +4,9 @@
  * is the easiest and most expensive mistake to make here.
  */
 export function describeTarget(): string {
-  const url = process.env.TURSO_DATABASE_URL;
+  // Must mirror db/index.ts exactly. A target line that disagrees with the
+  // connection it describes is worse than no line at all.
+  const url = process.env.LOCAL_ONLY === "1" ? undefined : process.env.TURSO_DATABASE_URL;
   if (!url) return "local file · data/mvc-polls.db";
   if (url.startsWith("file:")) return `local file · ${url.slice(5)}`;
   try {
