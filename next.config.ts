@@ -3,6 +3,16 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   turbopack: { root: __dirname },
 
+  experimental: {
+    // Hold the rendered page in the client cache so going back to a screen you
+    // just left is instant instead of another round trip to Tokyo. Registration
+    // actions all call revalidatePath, which clears this — so your own entry
+    // never comes back stale, only other villas' counts can lag, and only for
+    // half a minute. The live draw is unaffected: it polls its own API route
+    // with cache: "no-store", not RSC.
+    staleTimes: { dynamic: 30, static: 180 },
+  },
+
   async headers() {
     return [
       {

@@ -6,7 +6,7 @@ import { InviteBanner } from "@/components/InviteBanner";
 import { Shrine } from "@/components/Shrine";
 import { getLatestDraw } from "@/lib/draw";
 import {
-  countEntries, getActiveEvent, getItems, getPendingInvites, hasEntry, itemState,
+  countEntries, getActiveEventCached, getItemsCached, getPendingInvites, hasEntry, itemState,
   type ItemState,
 } from "@/lib/items";
 import { requireVilla } from "@/lib/session";
@@ -16,8 +16,8 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const { villaId } = await requireVilla();
   const { t, lang } = await getT();
-  const event = await getActiveEvent();
-  const allItems = await getItems(event.id);
+  const event = await getActiveEventCached();
+  const allItems = await getItemsCached(event.id);
 
   // Every query below is independent, so they go out together. Run in sequence
   // they were a dozen round trips to the database, and the page waited for all
@@ -185,7 +185,11 @@ export default async function Home() {
               {state === "not_open" ? (
                 <div aria-disabled className="cursor-default">{card}</div>
               ) : (
-                <Link href={`/i/${item.slug}`} className="block rounded-lg">
+                // Fetched while the card is on screen rather than when it is
+                // tapped. Five cards is the whole list, so the cost is bounded,
+                // and it is what makes the tap feel instant on a phone that is
+                // 130ms from the database.
+                <Link href={`/i/${item.slug}`} prefetch className="block rounded-lg">
                   {card}
                 </Link>
               )}
