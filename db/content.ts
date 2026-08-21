@@ -51,9 +51,9 @@ export const ITEM_COPY = {
     titleEn: "Annadanam sponsorship",
     titleTe: "అన్నదాన స్పాన్సర్‌షిప్",
     blurbEn:
-      "Sponsor a meal during the festival, in full or in part. The committee covers the rest and decides the menu.",
+      "Sponsor a meal during the festival — on your own, or together with other villas. Naming an amount is optional: villas sharing a meal usually split it equally, and the committee happily covers whatever is left. The committee arranges the menu.",
     blurbTe:
-      "ఉత్సవంలో ఒక భోజనాన్ని పూర్తిగా లేదా పాక్షికంగా స్పాన్సర్ చేయండి. మిగిలినది కమిటీ భరిస్తుంది, మెనూ కమిటీ నిర్ణయిస్తుంది.",
+      "ఉత్సవంలో ఒక భోజనాన్ని స్పాన్సర్ చేయండి — ఒక్కరుగా లేదా ఇతర విల్లాలతో కలిసి. మొత్తం చెప్పడం ఐచ్ఛికం: కలిసి స్పాన్సర్ చేసే విల్లాలు సాధారణంగా సమానంగా పంచుకుంటారు, మిగిలినది కమిటీ సంతోషంగా భరిస్తుంది. మెనూ కమిటీ ఏర్పాటు చేస్తుంది.",
     auctionNoteEn: null,
     auctionNoteTe: null,
   },

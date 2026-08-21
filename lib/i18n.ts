@@ -84,9 +84,11 @@ const dict = {
   places:         { en: "places", te: "స్థానాలు" },
   wanted:         { en: "sponsoring", te: "స్పాన్సర్ చేస్తున్నారు" },
   expecting:      { en: "expecting", te: "అంచనా" },
-  amountLabel:    { en: "Amount ₹", te: "మొత్తం ₹" },
+  // Doubles as the placeholder in a narrow input, so it has to stay short —
+  // "optional" earns its place there more than "amount" does.
+  amountLabel:    { en: "₹ optional", te: "₹ ఐచ్ఛికం" },
   partialLabel:   { en: "towards this meal", te: "ఈ భోజనం కోసం" },
-  amountTbc:      { en: "amount to be confirmed with the committee", te: "మొత్తం కమిటీతో ఖరారు చేయాలి" },
+  amountTbc:      { en: "No amount set — that's perfectly fine. Sponsors of a meal usually share it equally, and you can settle it with the committee later.", te: "మొత్తం పెట్టలేదు — అది పూర్తిగా సరైనదే. ఒకే భోజనం దాతలు సాధారణంగా సమానంగా పంచుకుంటారు, తర్వాత కమిటీతో ఖరారు చేసుకోవచ్చు." },
   detailsTitle:   { en: "Add family details", te: "కుటుంబ వివరాలు" },
   familyName:     { en: "Family name", te: "కుటుంబ పేరు" },
   gotram:         { en: "Gotram", te: "గోత్రం" },
@@ -99,7 +101,7 @@ const dict = {
   pickSession:    { en: "Pick a session", te: "ఒక సమయాన్ని ఎంచుకోండి" },
   pickSessions:   { en: "Pick the sessions you'd like to sponsor", te: "మీరు స్పాన్సర్ చేయాలనుకున్న సమయాలను ఎంచుకోండి" },
   oversubscribed: { en: "If more villas want a session than it holds, that session goes to a draw.", te: "ఒక సమయానికి ఎక్కువ విల్లాలు కోరితే, ఆ సమయానికి లక్కీ డ్రా నిర్వహిస్తాం." },
-  committeeAllots:{ en: "The committee confirms who sponsors what, and may move a sponsor to another session to spread them out.", te: "ఎవరు ఏది స్పాన్సర్ చేస్తారో కమిటీ ఖరారు చేస్తుంది, సమానంగా పంచడానికి మరో సమయానికి మార్చవచ్చు." },
+  committeeAllots:{ en: "As many villas as like can share one meal, and you don't have to name an amount to take part. So that every day has someone, the committee may place you on another day — you'll see it here if that happens.", te: "ఒకే భోజనాన్ని ఎన్ని విల్లాలైనా కలిసి స్పాన్సర్ చేయవచ్చు, పాల్గొనడానికి మొత్తం చెప్పాల్సిన అవసరం లేదు. ప్రతి రోజుకీ దాతలు ఉండేలా కమిటీ మిమ్మల్ని మరో రోజుకు మార్చవచ్చు — అలా జరిగితే ఇక్కడే కనిపిస్తుంది." },
   invitesTitle:   { en: "Waiting for your answer", te: "మీ సమాధానం కోసం" },
   invitedYou:     { en: "added you to their group", te: "మిమ్మల్ని వారి గ్రూప్‌లో చేర్చారు" },
 } as const;
