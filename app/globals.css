@@ -64,6 +64,35 @@ body {
   }
 }
 
+/* Tailwind v3 shipped `button { cursor: pointer }` in its preflight; v4 dropped
+   it to follow the browser, which draws a plain arrow. Across a committee
+   dashboard and a booking screen that reads as "none of this is clickable", so
+   it goes back.
+
+   In @layer base for the same reason as the ring above: the closed item cards
+   set cursor-default deliberately, and a utility has to be able to win.
+
+   Labels only get the hand when they wrap a checkbox — the ones around text
+   fields in SlotPicker should keep the I-beam. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  summary,
+  select:not(:disabled),
+  input:is([type="checkbox"], [type="radio"], [type="file"]):not(:disabled),
+  label:has(> input[type="checkbox"]:not(:disabled)),
+  label:has(> input[type="radio"]:not(:disabled)) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled,
+  input:is([type="checkbox"], [type="radio"]):disabled,
+  label:has(> input:disabled) {
+    cursor: not-allowed;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
