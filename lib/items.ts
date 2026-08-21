@@ -1,4 +1,5 @@
 import { and, count, eq, inArray } from "drizzle-orm";
+import { cached } from "@/lib/cache";
 import { db } from "@/db";
 import { entries, entryMembers, items, settings, villas } from "@/db/schema";
 
@@ -30,6 +31,28 @@ export async function getItems(eventId: number) {
     orderBy: (i, { asc }) => [asc(i.sortOrder)],
   });
 }
+
+/**
+ * The resident-facing reads. Same rows as above, held briefly so they are not
+ * two Tokyo round trips at the front of every page.
+ *
+ * The committee deliberately does NOT use these: someone editing a date on the
+ * dashboard must see the change land, not their own edit a few seconds out of
+ * date. Admin pages and every server action keep reading straight through.
+ *
+ * Item rows carry opensAt and closesAt, and `itemState` compares them against
+ * the clock at render time — so a cached row still opens and closes on time.
+ * Only a committee member changing a status by hand can be briefly behind, and
+ * an entry submitted in that window is still refused by the action, which
+ * re-reads the item itself.
+ */
+export const getActiveEventCached = () => cached("event", 60_000, getActiveEvent);
+
+export const getItemsCached = (eventId: number) =>
+  cached(`items:${eventId}`, 20_000, () => getItems(eventId));
+
+export const getItemBySlugCached = (eventId: number, slug: string) =>
+  cached(`item:${eventId}:${slug}`, 20_000, () => getItemBySlug(eventId, slug));
 
 export async function getItemBySlug(eventId: number, slug: string) {
   return db.query.items.findFirst({

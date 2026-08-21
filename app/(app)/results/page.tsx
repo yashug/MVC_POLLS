@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 import { getDrawDetail, getLatestDraw } from "@/lib/draw";
 import { fmtDateTime } from "@/lib/ist";
 import { getT, pick } from "@/lib/i18n";
-import { getActiveEvent, getItems } from "@/lib/items";
+import { getActiveEventCached, getItemsCached } from "@/lib/items";
 import { requireVilla } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -15,11 +15,11 @@ export const dynamic = "force-dynamic";
 export default async function ResultsPage() {
   const { villaId, villaNo } = await requireVilla();
   const { t, lang } = await getT();
-  const event = await getActiveEvent();
+  const event = await getActiveEventCached();
 
   // Results day is when the most people are on the page at once, so the items
   // are resolved side by side rather than one draw at a time.
-  const allItems = await getItems(event.id);
+  const allItems = await getItemsCached(event.id);
   const latestDraws = await Promise.all(allItems.map((item) => getLatestDraw(item.id)));
 
   const publishedDraws = allItems.flatMap((item, i) => {

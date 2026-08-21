@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ZariBand } from "@/components/ZariBand";
 import { getT } from "@/lib/i18n";
-import { getActiveEvent, getItemBySlug } from "@/lib/items";
+import { getActiveEventCached, getItemBySlugCached } from "@/lib/items";
 import { getSlotEntries, getSlots, PERIOD_LABEL, PERIOD_TIME } from "@/lib/slots";
 import { requireVilla } from "@/lib/session";
 
@@ -12,11 +12,11 @@ const ORDER = ["morning", "breakfast", "lunch", "evening", "dinner"];
 export default async function SchedulePage() {
   const { villaId } = await requireVilla();
   const { t, lang } = await getT();
-  const event = await getActiveEvent();
+  const event = await getActiveEventCached();
 
   const [pooja, food] = await Promise.all([
-    getItemBySlug(event.id, "pooja-slots"),
-    getItemBySlug(event.id, "annadanam"),
+    getItemBySlugCached(event.id, "pooja-slots"),
+    getItemBySlugCached(event.id, "annadanam"),
   ]);
 
   const rows: {

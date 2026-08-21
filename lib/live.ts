@@ -1,5 +1,5 @@
 import { getDrawDetail, getLatestDraw } from "@/lib/draw";
-import { getActiveEvent, getItemBySlug } from "@/lib/items";
+import { getActiveEventCached, getItemBySlugCached } from "@/lib/items";
 
 /** Must match SPIN_DURATION_MS in components/Wheel.tsx. */
 export const SPIN_DURATION_MS = 6200;
@@ -29,8 +29,8 @@ export type LiveState = {
  * started, so it can't be read out of the network tab during the countdown.
  */
 export async function getLiveState(slug: string): Promise<LiveState | null> {
-  const event = await getActiveEvent();
-  const item = await getItemBySlug(event.id, slug);
+  const event = await getActiveEventCached();
+  const item = await getItemBySlugCached(event.id, slug);
   if (!item) return null;
 
   const serverNow = Date.now();

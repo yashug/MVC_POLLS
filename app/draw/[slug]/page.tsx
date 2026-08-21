@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { LiveDraw } from "@/components/LiveDraw";
 import { getT, pick } from "@/lib/i18n";
-import { getActiveEvent, getItemBySlug } from "@/lib/items";
+import { getActiveEventCached, getItemBySlugCached } from "@/lib/items";
 import { getLiveState } from "@/lib/live";
 import { requireVilla } from "@/lib/session";
 
@@ -17,8 +17,8 @@ export default async function ResidentDrawPage({
   const { slug } = await params;
   const { t, lang } = await getT();
 
-  const event = await getActiveEvent();
-  const item = await getItemBySlug(event.id, slug);
+  const event = await getActiveEventCached();
+  const item = await getItemBySlugCached(event.id, slug);
   if (!item) notFound();
 
   const state = await getLiveState(slug);

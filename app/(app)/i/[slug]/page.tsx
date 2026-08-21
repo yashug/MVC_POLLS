@@ -6,7 +6,7 @@ import { ZariBand } from "@/components/ZariBand";
 import { fmtDateTime } from "@/lib/ist";
 import { getT, pick } from "@/lib/i18n";
 import {
-  countEntries, getActiveEvent, getItemBySlug, getVillaEntry, isEditable, itemState,
+  countEntries, getActiveEventCached, getItemBySlugCached, getVillaEntry, isEditable, itemState,
 } from "@/lib/items";
 import {
   allocatedCounts, getSlots, getSlotEntries, getVillaEntryIds, requestCounts, slotLabel,
@@ -20,8 +20,8 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
   const { villaId } = await requireVilla();
   const { t, lang } = await getT();
 
-  const event = await getActiveEvent();
-  const item = await getItemBySlug(event.id, slug);
+  const event = await getActiveEventCached();
+  const item = await getItemBySlugCached(event.id, slug);
   if (!item) notFound();
 
   const state = itemState(item);
