@@ -44,6 +44,7 @@ export default async function AdminDrawPage({ params }: { params: Promise<{ slug
       }}
       controls={
         <AdminDrawControls
+          slug={slug}
           drawId={draw.id}
           method={draw.method}
           status={draw.status}

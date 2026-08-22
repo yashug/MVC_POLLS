@@ -112,6 +112,14 @@ export function AdminItemCard({ item }: { item: AdminItem }) {
             >
               {item.draw.method === "app_wheel" ? "Go to the wheel →" : "Record the winner →"}
             </Link>
+            {item.draw.method === "physical" && (
+              <a
+                href={`/api/draw/${item.slug}/chits`}
+                className="rounded-md border border-zari/30 px-3 py-1.5 text-xs font-semibold text-zari-pale hover:bg-zari/10"
+              >
+                Print the chits
+              </a>
+            )}
             <Btn onClick={() => run(() => cancelDrawAction(item.draw!.id, item.id))} disabled={pending}>
               Cancel draw
             </Btn>

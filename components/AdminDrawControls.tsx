@@ -8,8 +8,9 @@ import {
 } from "@/app/admin/actions";
 
 export function AdminDrawControls({
-  drawId, method, status, isLive, entrants,
+  slug, drawId, method, status, isLive, entrants,
 }: {
+  slug: string;
   drawId: number;
   method: "app_wheel" | "physical";
   status: "pending" | "completed" | "published";
@@ -58,8 +59,15 @@ export function AdminDrawControls({
       {method === "physical" && status === "pending" && (
         <>
           <p className="mt-2 text-sm leading-relaxed text-zari-pale/70">
-            Run the draw in front of everyone, then pick the entry that won.
+            Print the chits, cut them up and draw one in front of everyone, then pick the
+            entry that won.
           </p>
+          <a
+            href={`/api/draw/${slug}/chits`}
+            className="mt-3 block rounded-md border border-zari/30 py-2.5 text-center text-sm font-semibold text-zari-pale hover:bg-zari/10"
+          >
+            Print the chits (A4 PDF)
+          </a>
           <div className="mt-3 flex flex-wrap gap-2">
             <select
               value={pick}
