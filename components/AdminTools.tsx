@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import {
-  resetTestDataAction, resetVillaPin, setPaymentStatus, setVillaPin, updateSetting,
+  resetTestDataAction, resetVillaPin, setPaymentStatus, setVillaName, setVillaPin, updateSetting,
   type Res,
 } from "@/app/admin/actions";
 
@@ -27,7 +27,7 @@ export function SettingToggle({
   );
 }
 
-export function VillaTools() {
+export function VillaTools({ unnamed }: { unnamed: number[] }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
 
@@ -73,6 +73,49 @@ export function VillaTools() {
           e.preventDefault();
           const fd = new FormData(e.currentTarget);
           const no = Number(fd.get("villaNo"));
+          run(() => setVillaName(no, String(fd.get("name") ?? "")), `Villa ${no} renamed.`);
+        }}
+      >
+        <label className="block">
+          <span className="block text-[0.58rem] uppercase tracking-[0.14em] text-zari/70">
+            Correct a name
+          </span>
+          <input
+            name="villaNo" inputMode="numeric" required placeholder="000"
+            className="villa-no mt-1 w-20 rounded-md border border-zari/25 bg-night px-2 py-1.5 text-center text-zari-pale focus:border-zari focus:outline-none"
+          />
+        </label>
+        <input
+          name="name" required placeholder="Their name"
+          className="mt-1 w-36 rounded-md border border-zari/25 bg-night px-2 py-1.5 text-xs text-zari-pale focus:border-zari focus:outline-none"
+        />
+        <button
+          type="submit" disabled={pending}
+          className="rounded-md border border-zari/30 px-3 py-1.5 text-xs font-semibold text-zari-pale hover:bg-zari/10 disabled:opacity-50"
+        >
+          Save name
+        </button>
+        <p className="basis-full text-[0.68rem] leading-relaxed text-zari-pale/50">
+          Their PIN is untouched — they stay signed in.
+        </p>
+        {unnamed.length > 0 && (
+          <p className="basis-full text-[0.68rem] leading-relaxed text-zari-pale/50">
+            {unnamed.length === 1 ? "Villa " : "Villas "}
+            <span className="villa-no text-zari">{unnamed.join(", ")}</span>
+            {unnamed.length === 1
+              ? " has no name recorded, so it shows"
+              : " have no name recorded, so they show"}{" "}
+            as a villa number alone wherever residents are listed.
+          </p>
+        )}
+      </form>
+
+      <form
+        className="mt-4 flex flex-wrap items-end gap-2 border-t border-zari/15 pt-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
+          const no = Number(fd.get("villaNo"));
           run(
             () => setVillaPin(no, String(fd.get("name") ?? ""), String(fd.get("pin") ?? "")),
             `Villa ${no} registered. Give them the PIN.`,
@@ -89,7 +132,7 @@ export function VillaTools() {
           />
         </label>
         <input
-          name="name" placeholder="Their name"
+          name="name" required placeholder="Their name"
           className="mt-1 w-36 rounded-md border border-zari/25 bg-night px-2 py-1.5 text-xs text-zari-pale focus:border-zari focus:outline-none"
         />
         <input

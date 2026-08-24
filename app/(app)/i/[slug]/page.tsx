@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EntrantList } from "@/components/EntrantList";
 import { EntryPanel } from "@/components/EntryPanel";
 import { SlotPicker } from "@/components/SlotPicker";
 import { ZariBand } from "@/components/ZariBand";
 import { fmtDateTime } from "@/lib/ist";
 import { getT, pick } from "@/lib/i18n";
 import {
-  countEntries, getActiveEventCached, getItemBySlugCached, getVillaEntry, isEditable, itemState,
+  countEntries, entrantsVisible, getActiveEventCached, getItemBySlugCached, getPublicEntrants,
+  getVillaEntry, getVisibilityCached, isEditable, itemState,
 } from "@/lib/items";
 import {
   allocatedCounts, getSlots, getSlotEntries, getVillaEntryIds, requestCounts, slotLabel,
@@ -17,7 +19,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ItemPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { villaId } = await requireVilla();
+  const { villaId, villaNo } = await requireVilla();
   const { t, lang } = await getT();
 
   const event = await getActiveEventCached();
@@ -31,14 +33,18 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
   const auctionNote = pick(item, "auctionNote", lang);
   const isDraw = item.kind === "lucky_dip";
 
+  const visibility = await getVisibilityCached(event.id);
+  const showEntrants = entrantsVisible(item, visibility);
+
   // Slot-based items (pooja, annadanam) carry their own booking data. Nothing
   // here depends on anything else here, so it all goes out at once.
-  const [count, mine, slotRows, slotEntries, myEntryIds] = await Promise.all([
+  const [count, mine, slotRows, slotEntries, myEntryIds, entrants] = await Promise.all([
     countEntries(item.id),
     getVillaEntry(item.id, villaId),
     item.collectsSlot ? getSlots(item.id) : [],
     item.collectsSlot ? getSlotEntries(item.id) : [],
     item.collectsSlot ? getVillaEntryIds(item.id, villaId) : new Set<number>(),
+    showEntrants ? getPublicEntrants(item.id, visibility.names) : [],
   ]);
 
   // Which of those entries are ours is a filter, not a second trip for the
@@ -189,6 +195,21 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
         <p className="mt-4 text-center text-xs text-leaf-faint">
           {t("editUntil")} {fmtDateTime(item.closesAt)}
         </p>
+      )}
+
+      {showEntrants && (
+        <EntrantList
+          entrants={entrants}
+          myVillaNo={villaNo}
+          lang={lang}
+          slotLabels={new Map(slotRows.map((s) => [s.id, slotLabel(s, lang)]))}
+          labels={{
+            title: isDraw ? t("whoEntered") : t("whoSignedUp"),
+            note: item.collectsSlot ? t("entrantNoteSlots") : t("entrantNote"),
+            empty: t("noEntrantsYet"),
+            you: t("youLabel"),
+          }}
+        />
       )}
     </>
   );
