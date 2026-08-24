@@ -3,7 +3,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { drawResults, draws, entries, entryMembers, items } from "@/db/schema";
 import { audit } from "@/lib/audit";
-import { getEntriesWithMembers, getSetting } from "@/lib/items";
+import { countedMembers, getEntriesWithMembers, getSetting } from "@/lib/items";
 
 export type Entrant = { entryId: number; villaNos: number[]; label: string };
 
@@ -46,12 +46,9 @@ export async function prepareDraw(itemId: number, method: "app_wheel" | "physica
 
   if (eligible.length === 0) throw new Error("No eligible entries to draw from.");
 
-  // A villa that never answered the invitation is not part of the entry. The
-  // lead always counts, so an entry never empties out — it just enters smaller.
+  // Same rule as the public entrant list — see countedMembers.
   const entrants: Entrant[] = eligible.map((e) => {
-    const accepted = e.members.filter((m) => m.acceptance === "accepted");
-    const villaNos = (accepted.length > 0 ? accepted : e.members.filter((m) => m.role === "lead"))
-      .map((m) => m.villaNo);
+    const villaNos = countedMembers(e.members).map((m) => m.villaNo);
     return { entryId: e.id, villaNos, label: villaNos.join(" + ") };
   });
 

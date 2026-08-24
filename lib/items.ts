@@ -1,7 +1,9 @@
 import { and, count, eq, inArray } from "drizzle-orm";
 import { cached } from "@/lib/cache";
 import { db } from "@/db";
-import { entries, entryMembers, items, settings, villas } from "@/db/schema";
+import { entries, entryMembers, items, settings, villaAccounts, villas } from "@/db/schema";
+
+import type { Acceptance } from "@/db/schema";
 
 export type Item = typeof items.$inferSelect;
 
@@ -90,6 +92,139 @@ export async function getEntriesWithMembers(itemId: number) {
       .sort((a, b) => (a.role === "lead" ? -1 : b.role === "lead" ? 1 : a.villaNo - b.villaNo)),
   }));
 }
+
+/**
+ * Who in an entry actually counts. A villa that never answered the invitation is
+ * not part of it. The lead always counts, so an entry never empties out — it
+ * just counts smaller.
+ *
+ * The draw and the public entrant list both go through here, because a list
+ * that showed different villas from the ones in the bowl would be worse than no
+ * list at all.
+ */
+export function countedMembers<T extends { role: "lead" | "member"; acceptance: Acceptance }>(
+  members: T[],
+): T[] {
+  const accepted = members.filter((m) => m.acceptance === "accepted");
+  return accepted.length > 0 ? accepted : members.filter((m) => m.role === "lead");
+}
+
+/**
+ * `Villa 42` is what an account gets when the committee registers a resident
+ * without typing their name. It stands in for a missing name rather than being
+ * one, and printing it beside the villa number only says the number twice — so
+ * it counts as no name at all.
+ */
+function realName(name: string | null | undefined, villaNo: number): string | null {
+  const trimmed = (name ?? "").trim();
+  if (!trimmed) return null;
+  return trimmed.toLowerCase() === `villa ${villaNo}` ? null : trimmed;
+}
+
+/**
+ * Villas that have signed in but carry no real name, so the committee knows
+ * which ones to correct — they show as a bare villa number wherever residents
+ * are listed.
+ */
+export async function villasNeedingName(): Promise<number[]> {
+  const accounts = await db.query.villaAccounts.findMany({
+    columns: { villaId: true, claimedByName: true },
+  });
+  if (accounts.length === 0) return [];
+
+  const rows = await db.query.villas.findMany({
+    where: inArray(villas.id, accounts.map((a) => a.villaId)),
+    columns: { id: true, villaNo: true },
+  });
+  const noOf = new Map(rows.map((v) => [v.id, v.villaNo]));
+
+  return accounts
+    .flatMap((a) => {
+      const no = noOf.get(a.villaId);
+      return no != null && realName(a.claimedByName, no) === null ? [no] : [];
+    })
+    .sort((a, b) => a - b);
+}
+
+export type PublicEntrant = {
+  entryId: number;
+  villaNos: number[];
+  members: { villaNo: number; name: string | null }[];
+  /** Slot items only — which session this entry is for. */
+  slotId: number | null;
+};
+
+/**
+ * The entrant list as residents see it, when the committee has opened it.
+ * Names are a separate decision from the list itself, so `withNames` off still
+ * gives a list — of villa numbers only.
+ */
+export async function getPublicEntrants(
+  itemId: number,
+  withNames: boolean,
+): Promise<PublicEntrant[]> {
+  const rows = await getEntriesWithMembers(itemId);
+  if (rows.length === 0) return [];
+
+  // One lookup for the whole list rather than one per villa.
+  let nameOf = new Map<number, string>();
+  if (withNames) {
+    const accounts = await db.query.villaAccounts.findMany({
+      where: inArray(
+        villaAccounts.villaId,
+        rows.flatMap((e) => e.members.map((m) => m.villaId)),
+      ),
+      columns: { villaId: true, claimedByName: true },
+    });
+    nameOf = new Map(accounts.map((a) => [a.villaId, a.claimedByName]));
+  }
+
+  return rows.map((entry) => {
+    const counted = countedMembers(entry.members);
+    return {
+      entryId: entry.id,
+      // What the committee settled on wins over what was asked for.
+      slotId: entry.assignedSlotId ?? entry.requestedSlotId,
+      villaNos: counted.map((m) => m.villaNo),
+      members: counted.map((m) => ({
+        villaNo: m.villaNo,
+        // The family name they typed for this entry beats the name on the villa
+        // login — they wrote it for this occasion, and it is who is turning up.
+        name: withNames
+          ? realName(
+              (m.role === "lead" ? entry.familyName : null) ?? nameOf.get(m.villaId),
+              m.villaNo,
+            )
+          : null,
+      })),
+    };
+  });
+}
+
+export type Visibility = { draw: boolean; signup: boolean; names: boolean };
+
+/**
+ * What residents are allowed to see about each other. All three are off until
+ * the committee turns them on, so nobody's name appears by accident.
+ *
+ * One read for all of them — these are wanted together on every item page.
+ */
+export async function getVisibility(eventId: number): Promise<Visibility> {
+  const rows = await db.query.settings.findMany({ where: eq(settings.eventId, eventId) });
+  const on = (key: string) => rows.find((r) => r.key === key)?.value === "true";
+  return {
+    draw: on("show_entrants_draw"),
+    signup: on("show_entrants_signup"),
+    names: on("show_entrant_names"),
+  };
+}
+
+export const getVisibilityCached = (eventId: number) =>
+  cached(`visibility:${eventId}`, 20_000, () => getVisibility(eventId));
+
+/** Whether this item's entrant list is open, given its kind. */
+export const entrantsVisible = (item: Item, v: Visibility) =>
+  item.kind === "lucky_dip" ? v.draw : v.signup;
 
 /** A group is one ticket however many villas are in it — so this is the ticket count. */
 export async function countEntries(itemId: number) {

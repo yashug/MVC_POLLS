@@ -9,7 +9,9 @@ import { villaAccounts } from "@/db/schema";
 import { getLatestDraw } from "@/lib/draw";
 import { isProduction } from "@/lib/env";
 import { toLocalInput } from "@/lib/ist";
-import { getActiveEvent, getEntriesWithMembers, getItems, getSetting } from "@/lib/items";
+import {
+  getActiveEvent, getEntriesWithMembers, getItems, getSetting, getVisibility, villasNeedingName,
+} from "@/lib/items";
 import { requireAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +48,8 @@ export default async function AdminDashboard() {
   const excludeCross = (await getSetting(event.id, "exclude_cross_item_winners")) === "true";
   const excludePrev = (await getSetting(event.id, "exclude_previous_winners")) === "true";
   const confirmWinners = (await getSetting(event.id, "winner_confirmation_enabled")) === "true";
+  const visibility = await getVisibility(event.id);
+  const unnamed = await villasNeedingName();
 
   return (
     <div className="min-h-dvh bg-night text-zari-pale">
@@ -105,7 +109,36 @@ export default async function AdminDashboard() {
               value={confirmWinners}
             />
           </div>
-          <VillaTools />
+
+          <div className="space-y-2 rounded-lg bg-night-soft/60 p-4 ring-1 ring-zari/20">
+            <h2 className="font-[family-name:var(--font-display)] text-lg text-zari-pale">
+              What residents can see
+            </h2>
+            <p className="pb-1 text-xs leading-relaxed text-zari-pale/55">
+              Off by default — residents only ever see a count. Turning a list on shows
+              it to every signed-in villa, so agree it with the committee first.
+            </p>
+            <SettingToggle
+              settingKey="show_entrants_draw"
+              label="Open the entrant list for lucky draws"
+              hint="Everyone can see which villas are in the draw. Villas that entered together show as one entry, exactly as they go into the bowl."
+              value={visibility.draw}
+            />
+            <SettingToggle
+              settingKey="show_entrants_signup"
+              label="Open the entrant list for sign-ups"
+              hint="Same, for annadanam and pooja sessions — the items with no draw."
+              value={visibility.signup}
+            />
+            <SettingToggle
+              settingKey="show_entrant_names"
+              label="Show names as well as villa numbers"
+              hint="Applies to whichever lists are open above. Names come from the villa login, or from the family name on the entry where one was given."
+              value={visibility.names}
+            />
+          </div>
+
+          <VillaTools unnamed={unnamed} />
         </section>
 
         {!isProduction && <ResetTestData />}

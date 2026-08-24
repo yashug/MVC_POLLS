@@ -17,6 +17,7 @@ import { isProduction } from "@/lib/env";
 import { clearAttempts } from "@/lib/throttle";
 import { getActiveEvent, setSetting } from "@/lib/items";
 import type { ItemStatus } from "@/db/schema";
+import { bust } from "@/lib/cache";
 import { requireAdmin } from "@/lib/session";
 
 export type Res = { ok: true } | { ok: false; error: string };
@@ -61,6 +62,10 @@ export async function updateSetting(key: string, value: string): Promise<Res> {
   await requireAdmin();
   const event = await getActiveEvent();
   await setSetting(event.id, key, value);
+  // The visibility settings are read through the cache on every item page.
+  // Waiting out the TTL is tolerable for turning a list on; it isn't for
+  // turning names back off, which the committee will want to be immediate.
+  bust("visibility:");
   await audit({
     actorType: "admin", actorId: "admin", action: "setting.changed",
     entity: "setting", after: { key, value },
@@ -91,9 +96,48 @@ export async function resetVillaPin(villaNo: number): Promise<Res> {
 }
 
 /** Set a PIN directly, for residents the committee registers on their behalf. */
+/**
+ * Correct the name on a villa that has already signed in, without touching its
+ * PIN. Registering a resident used to accept a blank name and store "Villa 42",
+ * and the only way to change it afterwards was to reset their PIN and lock them
+ * out — so wherever residents are listed by name, those villas had nothing to
+ * show and no way to fix it.
+ */
+export async function setVillaName(villaNo: number, name: string): Promise<Res> {
+  await requireAdmin();
+  const clean = name.trim();
+  if (!clean) return { ok: false, error: "Enter the resident's name." };
+
+  const villa = await db.query.villas.findFirst({ where: eq(villas.villaNo, villaNo) });
+  if (!villa) return { ok: false, error: "That villa number isn't on the list." };
+
+  const account = await db.query.villaAccounts.findFirst({
+    where: eq(villaAccounts.villaId, villa.id),
+  });
+  if (!account) {
+    return { ok: false, error: `Villa ${villaNo} hasn't signed in yet — register it below.` };
+  }
+
+  await db
+    .update(villaAccounts)
+    .set({ claimedByName: clean.slice(0, 80) })
+    .where(eq(villaAccounts.villaId, villa.id));
+
+  await audit({
+    actorType: "admin", actorId: "admin", action: "villa.name_corrected",
+    entity: "villa", entityId: villa.id,
+    before: { claimedByName: account.claimedByName }, after: { claimedByName: clean },
+  });
+  refresh();
+  return { ok: true };
+}
+
 export async function setVillaPin(villaNo: number, name: string, pin: string): Promise<Res> {
   await requireAdmin();
   if (!/^\d{4}$/.test(pin)) return { ok: false, error: "PIN must be exactly 4 digits." };
+  // A villa registered without a name used to be stored as "Villa 42", which
+  // then had nothing to show wherever residents are listed by name.
+  if (!name.trim()) return { ok: false, error: "Enter the resident's name." };
   const villa = await db.query.villas.findFirst({ where: eq(villas.villaNo, villaNo) });
   if (!villa) return { ok: false, error: "That villa number isn't on the list." };
 
@@ -105,7 +149,7 @@ export async function setVillaPin(villaNo: number, name: string, pin: string): P
   await db.insert(villaAccounts).values({
     villaId: villa.id,
     pinHash: await bcrypt.hash(pin, 10),
-    claimedByName: name || `Villa ${villaNo}`,
+    claimedByName: name.trim(),
     claimedAt: new Date(),
   });
   await audit({

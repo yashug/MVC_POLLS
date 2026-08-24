@@ -102,6 +102,18 @@ const dict = {
   pickSessions:   { en: "Pick the sessions you'd like to sponsor", te: "మీరు స్పాన్సర్ చేయాలనుకున్న సమయాలను ఎంచుకోండి" },
   oversubscribed: { en: "If more villas want a session than it holds, that session goes to a draw.", te: "ఒక సమయానికి ఎక్కువ విల్లాలు కోరితే, ఆ సమయానికి లక్కీ డ్రా నిర్వహిస్తాం." },
   committeeAllots:{ en: "As many villas as like can share one meal, and you don't have to name an amount to take part. So that every day has someone, the committee may place you on another day — you'll see it here if that happens.", te: "ఒకే భోజనాన్ని ఎన్ని విల్లాలైనా కలిసి స్పాన్సర్ చేయవచ్చు, పాల్గొనడానికి మొత్తం చెప్పాల్సిన అవసరం లేదు. ప్రతి రోజుకీ దాతలు ఉండేలా కమిటీ మిమ్మల్ని మరో రోజుకు మార్చవచ్చు — అలా జరిగితే ఇక్కడే కనిపిస్తుంది." },
+  /* entrant list */
+  whoEntered:     { en: "Who has entered", te: "ఎవరు నమోదు చేసుకున్నారు" },
+  whoSignedUp:    { en: "Who has signed up", te: "ఎవరు నమోదు చేసుకున్నారు" },
+  entrantNote:    { en: "Villas that entered together count as one entry.", te: "కలిసి నమోదైన విల్లాలు ఒకే నమోదుగా లెక్కిస్తారు." },
+  entrantNoteSlots: { en: "Listed by session. A villa can sponsor more than one.", te: "సమయాల వారీగా. ఒక విల్లా ఒకటి కంటే ఎక్కువ స్పాన్సర్ చేయవచ్చు." },
+  noEntrantsYet:  { en: "Nobody has entered yet.", te: "ఇంకా ఎవరూ నమోదు కాలేదు." },
+  youLabel:       { en: "you", te: "మీరు" },
+  seeWho:         { en: "See who", te: "ఎవరో చూడండి" },
+  hideWho:        { en: "Hide", te: "దాచు" },
+  loadingWho:     { en: "Opening", te: "తెరుస్తోంది" },
+  rollFailed:     { en: "The list didn't load. Tap to try again.", te: "జాబితా రాలేదు. మళ్లీ ప్రయత్నించండి." },
+
   invitesTitle:   { en: "Waiting for your answer", te: "మీ సమాధానం కోసం" },
   invitedYou:     { en: "added you to their group", te: "మిమ్మల్ని వారి గ్రూప్‌లో చేర్చారు" },
 } as const;
