@@ -83,7 +83,7 @@ export function AdminItemCard({ item }: { item: AdminItem }) {
         >
           {/* Where a villa is entered for a resident who won't use the app —
               worth saying so, or nobody looks behind a bare "Entrants". */}
-          {item.collectsSlot ? "Entrants" : "Entrants · enter a villa"}
+          Entrants · enter a villa
         </Link>
 
         {item.collectsSlot && (

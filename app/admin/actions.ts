@@ -16,6 +16,10 @@ import { allocateSlots, clearAllocation, reassignEntry } from "@/lib/allocate";
 import { isProduction } from "@/lib/env";
 import { clearAttempts } from "@/lib/throttle";
 import { getActiveEvent, isEditable, setSetting } from "@/lib/items";
+import { getVillaSlotEntries } from "@/lib/slots";
+// The booking rules for a session are the resident ones; sharing the shape
+// keeps the two forms collecting the same details.
+import type { SlotDetails } from "@/app/(app)/i/[slug]/slot-actions";
 import type { ItemStatus } from "@/db/schema";
 import { bust } from "@/lib/cache";
 import { requireAdmin } from "@/lib/session";
@@ -380,7 +384,7 @@ export async function enterVillaAction(
   const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
   if (!item) return { ok: false, error: "That item no longer exists." };
   if (item.collectsSlot)
-    return { ok: false, error: "Sessions are booked from the sessions page, not here." };
+    return { ok: false, error: "This one needs a session picked with it." };
   if (!isEditable(item))
     return { ok: false, error: "Registration is closed for this one — reopen it first." };
 
@@ -466,6 +470,134 @@ export async function enterVillaAction(
   });
   refresh();
   return { ok: true };
+}
+
+/**
+ * The same thing for the items that ask for a session — pooja and annadanam.
+ * It follows the resident booking rules exactly, including moving an existing
+ * booking rather than refusing it on the items capped at one session per villa,
+ * so `moved` says which of the two happened and the committee can tell the
+ * resident what they now have.
+ */
+export type BookForVillaRes = { ok: true; moved: boolean } | { ok: false; error: string };
+
+export async function bookSlotForVillaAction(
+  itemId: number,
+  slotId: number,
+  villaNoRaw: string,
+  details: SlotDetails = {},
+): Promise<BookForVillaRes> {
+  await requireAdmin();
+
+  const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
+  if (!item) return { ok: false, error: "That item no longer exists." };
+  if (!item.collectsSlot)
+    return { ok: false, error: "This one has no sessions — enter the villa without one." };
+  if (!isEditable(item))
+    return { ok: false, error: "Registration is closed for this one — reopen it first." };
+
+  const slot = await db.query.slots.findFirst({
+    where: and(eq(slots.id, slotId), eq(slots.itemId, itemId)),
+  });
+  if (!slot) return { ok: false, error: "Pick a session." };
+  // Reserved sessions are filled from the allocation page, not booked into.
+  if (slot.isLocked) return { ok: false, error: "That session is reserved." };
+
+  const raw = villaNoRaw.trim();
+  const no = Number(raw);
+  // An empty box is Number("") === 0, which would otherwise be reported as the
+  // villa number 0 not existing.
+  if (!raw || !Number.isInteger(no) || no < 1) return { ok: false, error: "Enter a villa number." };
+  const villa = await db.query.villas.findFirst({ where: eq(villas.villaNo, no) });
+  if (!villa) return { ok: false, error: `Villa ${no} isn't on the list.` };
+
+  const mine = await getVillaSlotEntries(itemId, villa.id);
+  const single = item.maxEntriesPerVilla === 1;
+
+  if (mine.some((e) => e.requestedSlotId === slotId))
+    return { ok: false, error: `Villa ${no} already has this session.` };
+  if (!single && item.maxEntriesPerVilla != null && mine.length >= item.maxEntriesPerVilla)
+    return {
+      ok: false,
+      error: `Villa ${no} can take at most ${item.maxEntriesPerVilla} of these.`,
+    };
+
+  const clean = (v: string | undefined) => {
+    const t = (v ?? "").trim();
+    return t.length ? t.slice(0, 80) : null;
+  };
+  const now = new Date();
+  const patch = {
+    familyName: clean(details.familyName),
+    gotram: clean(details.gotram),
+    attendeesCount: details.attendeesCount ?? null,
+    amountPledged: details.amountPledged ?? null,
+    isPartial: details.isPartial ?? false,
+  };
+
+  // Pooja takes one session per villa, so a second choice is a change of mind
+  // rather than a second booking — exactly as it behaves for a resident.
+  if (single && mine.length > 0) {
+    const existing = mine[0];
+    // A blank box here means "leave it alone", not "clear it". The resident form
+    // arrives pre-filled with their own details on a move; this one can't, and
+    // moving a villa to another session shouldn't quietly lose the gotram they
+    // gave when they booked.
+    const merged = {
+      familyName: patch.familyName ?? existing.familyName,
+      gotram: patch.gotram ?? existing.gotram,
+      attendeesCount: patch.attendeesCount ?? existing.attendeesCount,
+      amountPledged: patch.amountPledged ?? existing.amountPledged,
+      isPartial: patch.amountPledged != null ? patch.isPartial : existing.isPartial,
+    };
+    await db
+      .update(entries)
+      .set({ requestedSlotId: slotId, ...merged, updatedAt: now })
+      .where(eq(entries.id, existing.id));
+    // slotKey backs the one-entry-per-villa-per-session index, so it moves too.
+    await db
+      .update(entryMembers)
+      .set({ slotKey: slotId })
+      .where(eq(entryMembers.entryId, existing.id));
+
+    await audit({
+      actorType: "admin", actorId: "admin", action: "slot.moved_for_villa",
+      entity: "entry", entityId: existing.id,
+      before: { slotId: existing.requestedSlotId }, after: { villaNo: no, slotId, ...merged },
+    });
+    refresh();
+    return { ok: true, moved: true };
+  }
+
+  const [entry] = await db
+    .insert(entries)
+    .values({
+      eventId: item.eventId,
+      itemId: item.id,
+      leadVillaId: villa.id,
+      requestedSlotId: slotId,
+      ...patch,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+
+  await db.insert(entryMembers).values({
+    entryId: entry.id,
+    itemId: item.id,
+    slotKey: slotId,
+    villaId: villa.id,
+    role: "lead",
+    acceptance: "accepted",
+    respondedAt: now,
+  });
+
+  await audit({
+    actorType: "admin", actorId: "admin", action: "slot.booked_for_villa",
+    entity: "entry", entityId: entry.id, after: { villaNo: no, slotId, ...patch },
+  });
+  refresh();
+  return { ok: true, moved: false };
 }
 
 /**
