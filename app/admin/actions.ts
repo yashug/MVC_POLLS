@@ -1,7 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
@@ -15,7 +15,7 @@ import {
 import { allocateSlots, clearAllocation, reassignEntry } from "@/lib/allocate";
 import { isProduction } from "@/lib/env";
 import { clearAttempts } from "@/lib/throttle";
-import { getActiveEvent, setSetting } from "@/lib/items";
+import { getActiveEvent, isEditable, setSetting } from "@/lib/items";
 import type { ItemStatus } from "@/db/schema";
 import { bust } from "@/lib/cache";
 import { requireAdmin } from "@/lib/session";
@@ -356,6 +356,151 @@ export async function setAllSlotCapacities(
   await audit({
     actorType: "admin", actorId: "admin", action: "slots.capacity_set_for_all",
     entity: "item", entityId: itemId, after: { capacity },
+  });
+  refresh();
+  return { ok: true };
+}
+
+/* ── Entering on a resident's behalf ───────────────────────── */
+
+/**
+ * Put a villa into a draw for them. Older residents ring a committee member or
+ * stop them at the gate rather than working through the app, and this writes
+ * that conversation down: the villa needs no account and never has to sign in.
+ * Nothing else about the entry is special — it goes into the bowl like any
+ * other, and if the resident does sign in later it is theirs to withdraw.
+ */
+export async function enterVillaAction(
+  itemId: number,
+  villaNosRaw: string,
+  familyName = "",
+): Promise<Res> {
+  await requireAdmin();
+
+  const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
+  if (!item) return { ok: false, error: "That item no longer exists." };
+  if (item.collectsSlot)
+    return { ok: false, error: "Sessions are booked from the sessions page, not here." };
+  if (!isEditable(item))
+    return { ok: false, error: "Registration is closed for this one — reopen it first." };
+
+  // "42", "42, 43" and "42 43" all mean the same thing to someone typing fast.
+  const nos = [...new Set(villaNosRaw.split(/[^0-9]+/).filter(Boolean).map(Number))];
+  if (nos.length === 0) return { ok: false, error: "Enter a villa number." };
+  if (nos.length > item.maxGroupSize)
+    return {
+      ok: false,
+      error:
+        item.maxGroupSize === 1
+          ? "This one is one villa per entry."
+          : `This one takes at most ${item.maxGroupSize} villas per entry.`,
+    };
+
+  const rows = await db.query.villas.findMany({ where: inArray(villas.villaNo, nos) });
+  const villaOf = new Map(rows.map((v) => [v.villaNo, v]));
+  const unknown = nos.filter((n) => !villaOf.has(n));
+  if (unknown.length > 0)
+    return {
+      ok: false,
+      error: `${unknown.length === 1 ? "Villa" : "Villas"} ${unknown.join(", ")} ${
+        unknown.length === 1 ? "isn't" : "aren't"
+      } on the list.`,
+    };
+
+  const ids = nos.map((n) => villaOf.get(n)!.id);
+  const taken = await db.query.entryMembers.findMany({
+    where: and(eq(entryMembers.itemId, item.id), inArray(entryMembers.villaId, ids)),
+  });
+  if (taken.length > 0) {
+    const clashing = nos.filter((n) => taken.some((t) => t.villaId === villaOf.get(n)!.id));
+    return {
+      ok: false,
+      error: `${clashing.length === 1 ? "Villa" : "Villas"} ${clashing.join(", ")} ${
+        clashing.length === 1 ? "has" : "have"
+      } already entered this one.`,
+    };
+  }
+
+  const name = familyName.trim().slice(0, 80);
+  const now = new Date();
+  const [entry] = await db
+    .insert(entries)
+    .values({
+      eventId: item.eventId,
+      itemId: item.id,
+      leadVillaId: ids[0],
+      familyName: name || null,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+
+  // Every villa counts straight away. An invitation would sit unanswered
+  // forever — the reason this entry exists is that nobody here is signing in.
+  await db.insert(entryMembers).values(
+    ids.map((villaId, i) => ({
+      entryId: entry.id,
+      itemId: item.id,
+      slotKey: 0,
+      villaId,
+      role: (i === 0 ? "lead" : "member") as "lead" | "member",
+      acceptance: "accepted" as const,
+      respondedAt: now,
+    })),
+  );
+
+  // Same ₹50 token as any other entry, still collected offline.
+  if (item.entryFee > 0) {
+    await db.insert(payments).values({
+      entryId: entry.id,
+      villaId: ids[0],
+      amount: item.entryFee,
+      status: "due",
+    });
+  }
+
+  await audit({
+    actorType: "admin", actorId: "admin", action: "entry.created_for_villa",
+    entity: "entry", entityId: entry.id,
+    after: { itemId: item.id, villaNos: nos, familyName: name || null },
+  });
+  refresh();
+  return { ok: true };
+}
+
+/**
+ * Take an entry back out. A villa entered on someone's behalf can't undo a
+ * mistyped number itself — it has no login — so the committee that made the
+ * entry has to be able to unmake it.
+ */
+export async function withdrawEntryAsAdmin(entryId: number): Promise<Res> {
+  await requireAdmin();
+
+  const entry = await db.query.entries.findFirst({ where: eq(entries.id, entryId) });
+  if (!entry || entry.status !== "active") return { ok: false, error: "That entry is already gone." };
+
+  const item = await db.query.items.findFirst({ where: eq(items.id, entry.itemId) });
+  if (!item) return { ok: false, error: "That item no longer exists." };
+  // Once the entrant list is frozen for a draw, removing an entry would leave
+  // the published checksum describing a list that no longer exists.
+  if (!isEditable(item))
+    return { ok: false, error: "Registration is closed for this one — reopen it first." };
+
+  const members = await db.query.entryMembers.findMany({
+    where: eq(entryMembers.entryId, entryId),
+  });
+  const villaRows = members.length
+    ? await db.query.villas.findMany({ where: inArray(villas.id, members.map((m) => m.villaId)) })
+    : [];
+
+  await db.update(entries).set({ status: "withdrawn", updatedAt: new Date() }).where(eq(entries.id, entryId));
+  // Frees every member to enter again — the unique index would otherwise hold them.
+  await db.delete(entryMembers).where(eq(entryMembers.entryId, entryId));
+
+  await audit({
+    actorType: "admin", actorId: "admin", action: "entry.withdrawn_by_admin",
+    entity: "entry", entityId: entryId,
+    before: { itemId: item.id, villaNos: villaRows.map((v) => v.villaNo).sort((a, b) => a - b) },
   });
   refresh();
   return { ok: true };
