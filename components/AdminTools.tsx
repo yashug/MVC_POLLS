@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import {
-  resetTestDataAction, resetVillaPin, setPaymentStatus, setVillaName, setVillaPin, updateSetting,
-  type Res,
+  enterVillaAction, resetTestDataAction, resetVillaPin, setPaymentStatus, setVillaName,
+  setVillaPin, updateSetting, withdrawEntryAsAdmin, type Res,
 } from "@/app/admin/actions";
 
 export function SettingToggle({
@@ -158,6 +158,157 @@ export function VillaTools({ unnamed }: { unnamed: number[] }) {
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * Enter a villa without them signing in. The committee takes these in person or
+ * over the phone from residents — mostly the older ones — who are never going
+ * to work through the app themselves.
+ */
+export function EnterForVilla({
+  itemId, maxGroupSize, isOpen, entryFee,
+}: { itemId: number; maxGroupSize: number; isOpen: boolean; entryFee: number }) {
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pending, start] = useTransition();
+
+  return (
+    <div className="mt-5 rounded-lg bg-night-soft p-4 ring-1 ring-zari/20">
+      <h2 className="font-[family-name:var(--font-display)] text-lg text-zari-pale">
+        Enter a villa for them
+      </h2>
+      <p className="mt-1 text-xs leading-relaxed text-zari-pale/55">
+        For residents who ask the committee directly instead of using the app. The
+        villa needs no PIN and never has to sign in — the entry counts exactly like
+        any other.
+        {entryFee > 0 && ` Still ₹${entryFee}, collected the usual way.`}
+      </p>
+
+      {!isOpen ? (
+        <p className="mt-3 rounded-md bg-night px-3 py-2 text-xs text-zari-pale/60">
+          Registration is closed for this one. Reopen it on the dashboard to add an entry.
+        </p>
+      ) : (
+        <form
+          className="mt-3 flex flex-wrap items-end gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const form = e.currentTarget;
+            const fd = new FormData(form);
+            const villaNos = String(fd.get("villaNos") ?? "");
+            setMsg(null);
+            start(async () => {
+              const r = await enterVillaAction(itemId, villaNos, String(fd.get("familyName") ?? ""));
+              setMsg(
+                r.ok
+                  ? { ok: true, text: `Entered ${villaNos.trim()}. Tell them it's done.` }
+                  : { ok: false, text: r.error },
+              );
+              if (r.ok) form.reset();
+            });
+          }}
+        >
+          <label className="block">
+            <span className="block text-[0.58rem] uppercase tracking-[0.14em] text-zari/70">
+              {maxGroupSize > 1 ? "Villa numbers" : "Villa number"}
+            </span>
+            <input
+              name="villaNos" inputMode="numeric" required
+              placeholder={maxGroupSize > 1 ? "42, 43" : "000"}
+              className="villa-no mt-1 w-28 rounded-md border border-zari/25 bg-night px-2 py-1.5 text-center text-zari-pale focus:border-zari focus:outline-none"
+            />
+          </label>
+          <label className="block">
+            <span className="block text-[0.58rem] uppercase tracking-[0.14em] text-zari/70">
+              Name (optional)
+            </span>
+            <input
+              name="familyName" placeholder="Their name"
+              className="mt-1 w-36 rounded-md border border-zari/25 bg-night px-2 py-1.5 text-xs text-zari-pale focus:border-zari focus:outline-none"
+            />
+          </label>
+          <button
+            type="submit" disabled={pending}
+            className="rounded-md bg-zari px-3 py-1.5 text-xs font-semibold text-night hover:bg-zari-light disabled:opacity-50"
+          >
+            Add entry
+          </button>
+          <p className="basis-full text-[0.68rem] leading-relaxed text-zari-pale/50">
+            {maxGroupSize > 1
+              ? `Up to ${maxGroupSize} villas entering together — separate the numbers with commas. The first one leads the group.`
+              : "One villa per entry for this one."}{" "}
+            The name shows in the entrant list where the committee has opened names.
+          </p>
+        </form>
+      )}
+
+      {msg && (
+        <p
+          role="status"
+          className={`mt-3 rounded-md px-3 py-2 text-xs ${
+            msg.ok ? "bg-zari/15 text-zari" : "bg-kumkum/25 text-kumkum-soft"
+          }`}
+        >
+          {msg.text}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Undo an entry. A villa entered on someone's behalf has no login of its own, so
+ * a mistyped number can only be fixed from here.
+ */
+export function RemoveEntry({ entryId, label }: { entryId: number; label: string }) {
+  const [armed, setArmed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+
+  if (!armed) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setArmed(true)}
+          className="text-[0.68rem] text-zari-pale/45 underline underline-offset-4 hover:text-kumkum-soft"
+        >
+          Remove
+        </button>
+        {error && (
+          <span role="alert" className="text-[0.68rem] text-kumkum-soft">
+            {error}
+          </span>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <span className="flex items-center gap-2 text-[0.68rem] text-zari-pale/70">
+      Remove {label}?
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() =>
+          start(async () => {
+            const r = await withdrawEntryAsAdmin(entryId);
+            if (!r.ok) setError(r.error);
+            setArmed(false);
+          })
+        }
+        className="rounded bg-kumkum px-2 py-0.5 font-semibold text-zari-pale disabled:opacity-60"
+      >
+        Yes
+      </button>
+      <button
+        type="button"
+        onClick={() => setArmed(false)}
+        className="rounded border border-zari/30 px-2 py-0.5 font-semibold text-zari-pale"
+      >
+        No
+      </button>
+    </span>
   );
 }
 

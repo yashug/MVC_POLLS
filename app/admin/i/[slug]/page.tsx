@@ -1,10 +1,12 @@
+import { and, eq, inArray } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PaymentRow } from "@/components/AdminTools";
+import { EnterForVilla, PaymentRow, RemoveEntry } from "@/components/AdminTools";
 import { db } from "@/db";
+import { auditLog } from "@/db/schema";
 import { getDrawDetail, getLatestDraw } from "@/lib/draw";
 import { fmtDateTime } from "@/lib/ist";
-import { getActiveEvent, getEntriesWithMembers, getItemBySlug } from "@/lib/items";
+import { getActiveEvent, getEntriesWithMembers, getItemBySlug, isEditable } from "@/lib/items";
 import { requireAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +29,25 @@ export default async function EntrantsPage({ params }: { params: Promise<{ slug:
   const payOf = new Map(pays.map((p) => [p.entryId, p]));
 
   const totalVillas = entries.reduce((n, e) => n + e.members.length, 0);
+  const isOpen = isEditable(item);
+
+  // Which of these the committee entered for someone. The audit log already
+  // knows, so nothing has to be stored twice.
+  const onBehalf = entries.length
+    ? new Set(
+        (
+          await db
+            .select({ entityId: auditLog.entityId })
+            .from(auditLog)
+            .where(
+              and(
+                eq(auditLog.action, "entry.created_for_villa"),
+                inArray(auditLog.entityId, entries.map((e) => e.id)),
+              ),
+            )
+        ).map((r) => r.entityId),
+      )
+    : new Set<number | null>();
 
   return (
     <div className="min-h-dvh bg-night px-5 py-6 text-zari-pale">
@@ -40,6 +61,15 @@ export default async function EntrantsPage({ params }: { params: Promise<{ slug:
           <b className="villa-no text-zari-pale">{totalVillas}</b> villas
           {item.kind === "lucky_dip" && " · a group counts as one ticket"}
         </p>
+
+        {!item.collectsSlot && (
+          <EnterForVilla
+            itemId={item.id}
+            maxGroupSize={item.maxGroupSize}
+            isOpen={isOpen}
+            entryFee={item.entryFee}
+          />
+        )}
 
         <ul className="mt-5 space-y-2">
           {entries.map((e) => {
@@ -71,6 +101,11 @@ export default async function EntrantsPage({ params }: { params: Promise<{ slug:
                       .filter(Boolean)
                       .join(", ")}
                   </span>
+                  {onBehalf.has(e.id) && (
+                    <span className="rounded bg-zari/15 px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wider text-zari">
+                      entered by committee
+                    </span>
+                  )}
                   <span className="ml-auto text-[0.68rem] text-zari-pale/40">
                     {fmtDateTime(e.createdAt)}
                   </span>
@@ -87,6 +122,15 @@ export default async function EntrantsPage({ params }: { params: Promise<{ slug:
                 )}
 
                 {pay && <PaymentRow id={pay.id} amount={pay.amount} status={pay.status} />}
+
+                {isOpen && (
+                  <div className="mt-2 flex items-center gap-2 border-t border-zari/10 pt-2">
+                    <RemoveEntry
+                      entryId={e.id}
+                      label={`villa ${e.members.map((m) => m.villaNo).join(" + ")}`}
+                    />
+                  </div>
+                )}
               </li>
             );
           })}
