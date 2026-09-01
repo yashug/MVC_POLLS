@@ -1,13 +1,16 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, inArray } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { EnterForVilla, PaymentRow, RemoveEntry } from "@/components/AdminTools";
+import {
+  BookSessionForVilla, EnterForVilla, PaymentRow, RemoveEntry, type AdminSlotOption,
+} from "@/components/AdminTools";
 import { db } from "@/db";
 import { auditLog } from "@/db/schema";
 import { getDrawDetail, getLatestDraw } from "@/lib/draw";
 import { fmtDateTime } from "@/lib/ist";
 import { getActiveEvent, getEntriesWithMembers, getItemBySlug, isEditable } from "@/lib/items";
 import { requireAdmin } from "@/lib/session";
+import { getSlotEntries, getSlots, requestCounts, slotLabel } from "@/lib/slots";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +34,24 @@ export default async function EntrantsPage({ params }: { params: Promise<{ slug:
   const totalVillas = entries.reduce((n, e) => n + e.members.length, 0);
   const isOpen = isEditable(item);
 
+  // Sessions for the booking form, with how many villas have asked for each —
+  // the committee needs that in front of them when they pick one over the phone.
+  let slotOptions: AdminSlotOption[] = [];
+  const sessionOf = new Map<number, string>();
+  if (item.collectsSlot) {
+    const [slotRows, slotEntries] = await Promise.all([getSlots(item.id), getSlotEntries(item.id)]);
+    const asked = requestCounts(slotEntries);
+    slotOptions = slotRows.map((s) => ({
+      id: s.id,
+      label: slotLabel(s, "en"),
+      capacity: s.capacity,
+      requested: asked.get(s.id) ?? 0,
+      isLocked: s.isLocked,
+      lockNote: s.lockNoteEn,
+    }));
+    for (const s of slotRows) sessionOf.set(s.id, slotLabel(s, "en"));
+  }
+
   // Which of these the committee entered for someone. The audit log already
   // knows, so nothing has to be stored twice.
   const onBehalf = entries.length
@@ -41,7 +62,7 @@ export default async function EntrantsPage({ params }: { params: Promise<{ slug:
             .from(auditLog)
             .where(
               and(
-                eq(auditLog.action, "entry.created_for_villa"),
+                inArray(auditLog.action, ["entry.created_for_villa", "slot.booked_for_villa"]),
                 inArray(auditLog.entityId, entries.map((e) => e.id)),
               ),
             )
@@ -62,7 +83,16 @@ export default async function EntrantsPage({ params }: { params: Promise<{ slug:
           {item.kind === "lucky_dip" && " · a group counts as one ticket"}
         </p>
 
-        {!item.collectsSlot && (
+        {item.collectsSlot ? (
+          <BookSessionForVilla
+            itemId={item.id}
+            isOpen={isOpen}
+            slots={slotOptions}
+            single={item.maxEntriesPerVilla === 1}
+            collectDetails={item.slug === "pooja-slots"}
+            collectAmount={item.allowPartial}
+          />
+        ) : (
           <EnterForVilla
             itemId={item.id}
             maxGroupSize={item.maxGroupSize}
@@ -110,6 +140,20 @@ export default async function EntrantsPage({ params }: { params: Promise<{ slug:
                     {fmtDateTime(e.createdAt)}
                   </span>
                 </div>
+
+                {item.collectsSlot && (
+                  <p className="mt-1.5 text-[0.7rem] text-zari-pale/55">
+                    {e.assignedSlotId
+                      ? `Given ${sessionOf.get(e.assignedSlotId) ?? "a session"}`
+                      : e.requestedSlotId
+                        ? `Asked for ${sessionOf.get(e.requestedSlotId) ?? "a session"}`
+                        : "No session"}
+                    {e.familyName && ` · ${e.familyName}`}
+                    {e.gotram && ` · ${e.gotram}`}
+                    {e.attendeesCount != null && ` · ${e.attendeesCount} attending`}
+                    {e.amountPledged != null && ` · ₹${e.amountPledged}`}
+                  </p>
+                )}
 
                 {e.members.some((m) => m.acceptance === "pending") && (
                   <p className="mt-1.5 text-[0.7rem] text-clay">

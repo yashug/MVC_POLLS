@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import {
-  enterVillaAction, resetTestDataAction, resetVillaPin, setPaymentStatus, setVillaName,
-  setVillaPin, updateSetting, withdrawEntryAsAdmin, type Res,
+  bookSlotForVillaAction, enterVillaAction, resetTestDataAction, resetVillaPin, setPaymentStatus,
+  setVillaName, setVillaPin, updateSetting, withdrawEntryAsAdmin, type Res,
 } from "@/app/admin/actions";
 
 export function SettingToggle({
@@ -161,17 +161,24 @@ export function VillaTools({ unnamed }: { unnamed: number[] }) {
   );
 }
 
-/**
- * Enter a villa without them signing in. The committee takes these in person or
- * over the phone from residents — mostly the older ones — who are never going
- * to work through the app themselves.
- */
-export function EnterForVilla({
-  itemId, maxGroupSize, isOpen, entryFee,
-}: { itemId: number; maxGroupSize: number; isOpen: boolean; entryFee: number }) {
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [pending, start] = useTransition();
+export type AdminSlotOption = {
+  id: number;
+  label: string;
+  capacity: number;
+  requested: number;
+  isLocked: boolean;
+  lockNote: string | null;
+};
 
+/** Shared chrome for the two on-behalf forms — the card, the note, the result line. */
+function OnBehalfPanel({
+  blurb, isOpen, msg, children,
+}: {
+  blurb: React.ReactNode;
+  isOpen: boolean;
+  msg: { ok: boolean; text: string } | null;
+  children: React.ReactNode;
+}) {
   return (
     <div className="mt-5 rounded-lg bg-night-soft p-4 ring-1 ring-zari/20">
       <h2 className="font-[family-name:var(--font-display)] text-lg text-zari-pale">
@@ -180,66 +187,15 @@ export function EnterForVilla({
       <p className="mt-1 text-xs leading-relaxed text-zari-pale/55">
         For residents who ask the committee directly instead of using the app. The
         villa needs no PIN and never has to sign in — the entry counts exactly like
-        any other.
-        {entryFee > 0 && ` Still ₹${entryFee}, collected the usual way.`}
+        any other. {blurb}
       </p>
 
-      {!isOpen ? (
+      {isOpen ? (
+        children
+      ) : (
         <p className="mt-3 rounded-md bg-night px-3 py-2 text-xs text-zari-pale/60">
           Registration is closed for this one. Reopen it on the dashboard to add an entry.
         </p>
-      ) : (
-        <form
-          className="mt-3 flex flex-wrap items-end gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const form = e.currentTarget;
-            const fd = new FormData(form);
-            const villaNos = String(fd.get("villaNos") ?? "");
-            setMsg(null);
-            start(async () => {
-              const r = await enterVillaAction(itemId, villaNos, String(fd.get("familyName") ?? ""));
-              setMsg(
-                r.ok
-                  ? { ok: true, text: `Entered ${villaNos.trim()}. Tell them it's done.` }
-                  : { ok: false, text: r.error },
-              );
-              if (r.ok) form.reset();
-            });
-          }}
-        >
-          <label className="block">
-            <span className="block text-[0.58rem] uppercase tracking-[0.14em] text-zari/70">
-              {maxGroupSize > 1 ? "Villa numbers" : "Villa number"}
-            </span>
-            <input
-              name="villaNos" inputMode="numeric" required
-              placeholder={maxGroupSize > 1 ? "42, 43" : "000"}
-              className="villa-no mt-1 w-28 rounded-md border border-zari/25 bg-night px-2 py-1.5 text-center text-zari-pale focus:border-zari focus:outline-none"
-            />
-          </label>
-          <label className="block">
-            <span className="block text-[0.58rem] uppercase tracking-[0.14em] text-zari/70">
-              Name (optional)
-            </span>
-            <input
-              name="familyName" placeholder="Their name"
-              className="mt-1 w-36 rounded-md border border-zari/25 bg-night px-2 py-1.5 text-xs text-zari-pale focus:border-zari focus:outline-none"
-            />
-          </label>
-          <button
-            type="submit" disabled={pending}
-            className="rounded-md bg-zari px-3 py-1.5 text-xs font-semibold text-night hover:bg-zari-light disabled:opacity-50"
-          >
-            Add entry
-          </button>
-          <p className="basis-full text-[0.68rem] leading-relaxed text-zari-pale/50">
-            {maxGroupSize > 1
-              ? `Up to ${maxGroupSize} villas entering together — separate the numbers with commas. The first one leads the group.`
-              : "One villa per entry for this one."}{" "}
-            The name shows in the entrant list where the committee has opened names.
-          </p>
-        </form>
       )}
 
       {msg && (
@@ -253,6 +209,217 @@ export function EnterForVilla({
         </p>
       )}
     </div>
+  );
+}
+
+const fieldLabel = "block text-[0.58rem] uppercase tracking-[0.14em] text-zari/70";
+const numberInput =
+  "villa-no mt-1 rounded-md border border-zari/25 bg-night px-2 py-1.5 text-center text-zari-pale focus:border-zari focus:outline-none";
+const textInput =
+  "mt-1 rounded-md border border-zari/25 bg-night px-2 py-1.5 text-xs text-zari-pale focus:border-zari focus:outline-none";
+const submitBtn =
+  "rounded-md bg-zari px-3 py-1.5 text-xs font-semibold text-night hover:bg-zari-light disabled:opacity-50";
+
+/**
+ * Enter a villa without them signing in. The committee takes these in person or
+ * over the phone from residents — mostly the older ones — who are never going
+ * to work through the app themselves.
+ */
+export function EnterForVilla({
+  itemId, maxGroupSize, isOpen, entryFee,
+}: { itemId: number; maxGroupSize: number; isOpen: boolean; entryFee: number }) {
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pending, start] = useTransition();
+
+  return (
+    <OnBehalfPanel
+      isOpen={isOpen}
+      msg={msg}
+      blurb={entryFee > 0 ? `Still ₹${entryFee}, collected the usual way.` : null}
+    >
+      <form
+        className="mt-3 flex flex-wrap items-end gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const form = e.currentTarget;
+          const fd = new FormData(form);
+          const villaNos = String(fd.get("villaNos") ?? "");
+          setMsg(null);
+          start(async () => {
+            const r = await enterVillaAction(itemId, villaNos, String(fd.get("familyName") ?? ""));
+            setMsg(
+              r.ok
+                ? { ok: true, text: `Entered ${villaNos.trim()}. Tell them it's done.` }
+                : { ok: false, text: r.error },
+            );
+            if (r.ok) form.reset();
+          });
+        }}
+      >
+        <label className="block">
+          <span className={fieldLabel}>{maxGroupSize > 1 ? "Villa numbers" : "Villa number"}</span>
+          <input
+            name="villaNos" inputMode="numeric" required
+            placeholder={maxGroupSize > 1 ? "42, 43" : "000"}
+            className={`${numberInput} w-28`}
+          />
+        </label>
+        <label className="block">
+          <span className={fieldLabel}>Name (optional)</span>
+          <input name="familyName" placeholder="Their name" className={`${textInput} w-36`} />
+        </label>
+        <button type="submit" disabled={pending} className={submitBtn}>
+          Add entry
+        </button>
+        <p className="basis-full text-[0.68rem] leading-relaxed text-zari-pale/50">
+          {maxGroupSize > 1
+            ? `Up to ${maxGroupSize} villas entering together — separate the numbers with commas. The first one leads the group.`
+            : "One villa per entry for this one."}{" "}
+          The name shows in the entrant list where the committee has opened names.
+        </p>
+      </form>
+    </OnBehalfPanel>
+  );
+}
+
+/**
+ * The same, for the items that ask for a session. Pooja wants the family
+ * details that go with it and annadanam an amount, so this collects whatever
+ * the resident form would have asked for.
+ */
+export function BookSessionForVilla({
+  itemId, isOpen, slots, single, collectDetails, collectAmount,
+}: {
+  itemId: number;
+  isOpen: boolean;
+  slots: AdminSlotOption[];
+  /** Pooja: one session per villa, so a second choice moves the first. */
+  single: boolean;
+  collectDetails: boolean;
+  collectAmount: boolean;
+}) {
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pending, start] = useTransition();
+
+  return (
+    <OnBehalfPanel
+      isOpen={isOpen}
+      msg={msg}
+      blurb={
+        single
+          ? "If the villa already has a session, this moves it rather than adding a second."
+          : "A villa can sponsor as many sessions as it likes."
+      }
+    >
+      <form
+        className="mt-3 flex flex-wrap items-end gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const form = e.currentTarget;
+          const fd = new FormData(form);
+          const villaNo = String(fd.get("villaNo") ?? "").trim();
+          const slotId = Number(fd.get("slotId"));
+          const label = slots.find((s) => s.id === slotId)?.label ?? "that session";
+          const attendees = String(fd.get("attendeesCount") ?? "").trim();
+          const amount = String(fd.get("amountPledged") ?? "").trim();
+          setMsg(null);
+          start(async () => {
+            const r = await bookSlotForVillaAction(itemId, slotId, villaNo, {
+              familyName: String(fd.get("familyName") ?? ""),
+              gotram: String(fd.get("gotram") ?? ""),
+              attendeesCount: attendees ? Number(attendees) : null,
+              amountPledged: amount ? Number(amount) : null,
+              // An amount named for one meal is a share of it, not the whole
+              // cost — the same reading the resident form gives it.
+              isPartial: collectAmount ? !!amount : false,
+            });
+            setMsg(
+              r.ok
+                ? {
+                    ok: true,
+                    text: `Villa ${villaNo} ${r.moved ? "moved to" : "booked for"} ${label}.`,
+                  }
+                : { ok: false, text: r.error },
+            );
+            if (r.ok) form.reset();
+          });
+        }}
+      >
+        <label className="block">
+          <span className={fieldLabel}>Villa number</span>
+          <input
+            name="villaNo" inputMode="numeric" required placeholder="000"
+            className={`${numberInput} w-20`}
+          />
+        </label>
+        <label className="block">
+          <span className={fieldLabel}>Session</span>
+          <select
+            name="slotId" required defaultValue=""
+            className="mt-1 max-w-full rounded-md border border-zari/25 bg-night px-2 py-1.5 text-xs text-zari-pale focus:border-zari focus:outline-none"
+          >
+            <option value="" disabled>
+              Pick a session…
+            </option>
+            {slots.map((s) => (
+              <option key={s.id} value={s.id} disabled={s.isLocked}>
+                {s.label}
+                {s.isLocked
+                  ? " · reserved"
+                  : single
+                    ? ` · ${s.requested}/${s.capacity} asked`
+                    : ` · ${s.requested} so far`}
+              </option>
+            ))}
+          </select>
+        </label>
+        {collectDetails && (
+          <>
+            <label className="block">
+              <span className={fieldLabel}>Family name</span>
+              <input name="familyName" placeholder="Their name" className={`${textInput} w-32`} />
+            </label>
+            <label className="block">
+              <span className={fieldLabel}>Gotram</span>
+              <input name="gotram" placeholder="Optional" className={`${textInput} w-28`} />
+            </label>
+            <label className="block">
+              <span className={fieldLabel}>Attending</span>
+              <input
+                name="attendeesCount" inputMode="numeric" placeholder="—"
+                className={`${numberInput} w-16`}
+              />
+            </label>
+          </>
+        )}
+        {collectAmount && (
+          <>
+            {!collectDetails && (
+              <label className="block">
+                <span className={fieldLabel}>Name (optional)</span>
+                <input name="familyName" placeholder="Their name" className={`${textInput} w-32`} />
+              </label>
+            )}
+            <label className="block">
+              <span className={fieldLabel}>Amount ₹</span>
+              <input
+                name="amountPledged" inputMode="numeric" placeholder="—"
+                className={`${numberInput} w-24`}
+              />
+            </label>
+          </>
+        )}
+        <button type="submit" disabled={pending} className={submitBtn}>
+          Add booking
+        </button>
+        <p className="basis-full text-[0.68rem] leading-relaxed text-zari-pale/50">
+          {single
+            ? "Sessions over their places go to a draw at allocation, exactly as they would if the resident had booked it themselves. Moving a villa with the boxes left blank keeps the details it already had."
+            : "Naming an amount is optional — leave it blank if they didn't say."}{" "}
+          Reserved sessions are filled from the allocation page instead.
+        </p>
+      </form>
+    </OnBehalfPanel>
   );
 }
 
